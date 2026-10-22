@@ -221,6 +221,12 @@ export function create(ctx) {
   for (let i = 0; i < pos.count; i++) {
     p.fromBufferAttribute(pos, i);
     const n = [nor.getX(i), nor.getY(i), nor.getZ(i)];
+    // Bruchende links: Terrassen quer zur Faser, dazu feine Splitter
+    if (p.x < -W / 2 + 0.5) {
+      const step = Math.floor(fbm3(p.y * 2.2 + 7, p.z * 2.2 + 3, 0.5, 3) * 5) / 5;
+      const splinter = fbm3(p.y * 9, p.z * 9, 2, 2) - 0.5;
+      p.x = Math.max(p.x, -W / 2 + 0.44 * step + 0.05 * splinter);
+    }
     for (const ch of chips) {
       const d = p.x * ch.n[0] + p.y * ch.n[1] + p.z * ch.n[2] - ch.c;
       if (d > 0) p.set(p.x - ch.n[0] * d, p.y - ch.n[1] * d, p.z - ch.n[2] * d);
@@ -236,11 +242,11 @@ export function create(ctx) {
   geo.computeVertexNormals();
   geo.computeBoundingBox();
 
-  const matEnd = new THREE.MeshStandardMaterial({
+  const matEnd = new THREE.MeshPhysicalMaterial({
     map: texture(end.col, true), bumpMap: texture(end.rb, false), bumpScale: 2.2,
     roughnessMap: texture(end.rb, false), roughness: 1, metalness: 0.08,
   });
-  const sideMat = (t) => new THREE.MeshStandardMaterial({
+  const sideMat = (t) => new THREE.MeshPhysicalMaterial({
     map: texture(t.col, true), bumpMap: texture(t.rb, false), bumpScale: 1.6,
     roughnessMap: texture(t.rb, false), roughness: 1, metalness: 0.22,
   });
@@ -335,6 +341,8 @@ export function create(ctx) {
         m.color.copy(tint);
         m.metalness = m === matEnd ? lerp(0.02, 0.1, k) : lerp(0.04, 0.3, k);
         m.roughness = lerp(1.15, 0.85, k);
+        m.clearcoat = m === matEnd ? 0 : lerp(0, 0.55, k);   // Seidenglanz der Längsflächen
+        m.clearcoatRoughness = 0.5;
       }
       level.dirty = true;
     },

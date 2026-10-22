@@ -67,10 +67,11 @@ void main() {
       grad += -1.1 * f / ${(PIT.rb * PIT.rb).toFixed(2)};
       float ang = 0.75 + (h - 0.5) * 0.6;
       vec2 rf = mat2(cos(ang), -sin(ang), sin(ang), cos(ang)) * f;
-      float slit = length(rf / vec2(1.05, h > 0.62 ? 0.85 : 0.3));
+      float slit = length(rf / vec2(0.9, h > 0.62 ? 0.7 : 0.26));
       if (slit < 1.0) discard;
-      extra += 0.5 * (1.0 - smoothstep(0.0, 0.35, slit - 1.0));
-      extra += 0.22 * smoothstep(${(PIT.rb - 0.3).toFixed(2)}, ${PIT.rb.toFixed(1)}, r);
+      extra += 0.5 * (1.0 - smoothstep(0.0, 0.35, slit - 1.0));                                   // Rand des Porus
+      extra += 0.34 * (1.0 - smoothstep(0.0, 0.5, abs(r - ${(PIT.rb - 0.35).toFixed(2)})));        // Hofrand (Wulst)
+      extra -= 0.14 * (1.0 - smoothstep(0.2, 1.9, r));                                            // Kammer fällt zum Porus ab
     }
   } else {
     // vereinzelte einfache Tüpfel
@@ -198,6 +199,23 @@ function fractureRibbon() {
   return g;
 }
 
+// Röhrenradius entlang der Kurve modulieren (Septen, leichte Wellen)
+function modulateTube(geo, curve, segs, radial, f) {
+  const pos = geo.attributes.position;
+  const c = new THREE.Vector3(), v = new THREE.Vector3();
+  for (let i = 0; i <= segs; i++) {
+    curve.getPointAt(i / segs, c);
+    const k = f(i);
+    for (let j = 0; j <= radial; j++) {
+      const idx = i * (radial + 1) + j;
+      v.fromBufferAttribute(pos, idx).sub(c).multiplyScalar(k).add(c);
+      pos.setXYZ(idx, v.x, v.y, v.z);
+    }
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
+
 export function create(ctx) {
   const rand = mulberry32(9001);
   const scene = new THREE.Scene();
@@ -227,7 +245,7 @@ export function create(ctx) {
     const ang = rand() * Math.PI;
     bacteria.push({ s, y, ang, len: 0.7 + rand() * 0.6, ph: rand() * 6.28 });
   }
-  const bacMesh = new THREE.InstancedMesh(new THREE.CapsuleGeometry(0.34, 1, 4, 12), semMaterial({ base: 0.44, noise: 4 }), bacteria.length);
+  const bacMesh = new THREE.InstancedMesh(new THREE.CapsuleGeometry(0.36, 1, 4, 12), semMaterial({ base: 0.5, noise: 4 }), bacteria.length);
   const placeBacteria = (t) => {
     bacteria.forEach((b, k) => {
       const a = b.ang + 0.05 * Math.sin(t * 0.7 + b.ph);
@@ -246,7 +264,8 @@ export function create(ctx) {
   const path = [[-17, 1.5], [-12, -0.8], [-7, -2.2], [-2.5, -4.6], [1.2, -7.4]].map(([s, y]) => onWall(s, y, 0.92));
   path.push(onWall(HYPHA_PIT.x, HYPHA_PIT.y, 0.2), onWall(HYPHA_PIT.x + 0.3, HYPHA_PIT.y - 0.2, -2.6));
   const hyCurve = new THREE.CatmullRomCurve3(path);
-  scene.add(new THREE.Mesh(new THREE.TubeGeometry(hyCurve, 160, 0.9, 14), hyMat));
+  const septum = (i) => 1 + 0.05 * Math.sin(i * 0.9) - 0.16 * Math.exp(-Math.pow(((i % 34) - 17) / 2.2, 2));
+  scene.add(new THREE.Mesh(modulateTube(new THREE.TubeGeometry(hyCurve, 160, 0.9, 14), hyCurve, 160, 14, septum), hyMat));
   const branch = new THREE.CatmullRomCurve3([[-7, -2.2], [-6.2, 0.6], [-4.4, 3.2], [-2.6, 4.6]].map(([s, y]) => onWall(s, y, 0.85)));
   scene.add(new THREE.Mesh(new THREE.TubeGeometry(branch, 60, 0.8, 12), hyMat));
   const tip = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 12), hyMat);

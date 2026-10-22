@@ -1,24 +1,30 @@
-// Bedienoberfläche über der 3D-Szene: Skalen-Leiter, Infotafel, Hotspots, REM-Datenleiste, Regler.
+// Bedienoberfläche über der 3D-Szene: Skalen-Leiter aus Hex-Abzeichen, Infotafel, Hotspots mit Leitlinien,
+// REM-Datenleiste, Regler. Bildsprache: Hexagon-Badge + Leitlinie zum Objekt (Infografik-Vorlage).
 
 import { LEVELS, SOURCES } from './content.js';
 import { properties, fmt, T_MIN, T_MAX } from './science.js';
+import { hexBadge, LEVEL_ICONS, HOTSPOT_ICONS, FACT_ICONS } from './icons.js';
 
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const SVG_NS = 'http://www.w3.org/2000/svg';
 
 export function createHud(handlers) {
   const ladder = $('#ladder');
   const panel = $('#panel-body');
   const layer = $('#hotspots');
+  const leaders = $('#leaders');
   const meter = $('#edge-meter');
   let markers = [];
   let current = -1;
   let level = null;
   let selected = null;
+  let lastState = null;
 
   ladder.innerHTML = LEVELS.map((l, i) => `
     <li><button type="button" data-level="${i}" aria-label="Ebene ${i + 1}: ${esc(l.title)}, ${esc(l.scale)}">
-      <span class="lad-scale">${esc(l.scale)}</span><span class="lad-name">${esc(l.name)}</span>
+      ${hexBadge(LEVEL_ICONS[l.id], 'hex--lad')}
+      <span class="lad-text"><span class="lad-scale">${esc(l.scale)}</span><span class="lad-name">${esc(l.name)}</span></span>
     </button></li>`).join('');
   ladder.addEventListener('click', (e) => {
     const b = e.target.closest('button[data-level]');
@@ -31,9 +37,12 @@ export function createHud(handlers) {
     $('#btn-panel').setAttribute('aria-expanded', String(!open));
   });
 
-  function facts(list) {
-    return `<div class="facts">${list.map((f) => `
-      <div class="fact"><span class="fact-value">${esc(f.value)}</span><span class="fact-label">${esc(f.label)}</span></div>`).join('')}</div>`;
+  function facts(list, levelId) {
+    const icons = FACT_ICONS[levelId] || [];
+    return `<div class="facts">${list.map((f, i) => `
+      <div class="fact">${hexBadge(icons[i] || 'info', 'hex--fact')}
+        <div class="fact-text"><span class="fact-value">${esc(f.value)}</span><span class="fact-label">${esc(f.label)}</span></div>
+      </div>`).join('')}</div>`;
   }
 
   function labTable(t) {
@@ -58,15 +67,16 @@ export function createHud(handlers) {
     const l = LEVELS[current];
     const dyn = level && level.facts ? level.facts() : [];
     const hsList = level ? level.hotspots : [];
+    const icons = HOTSPOT_ICONS[l.id] || {};
     const refs = l.refs.map((r) => `<a href="#quelle-${r}">[${r}]</a>`).join(' ');
     let detail = '';
     if (selected) {
       const h = l.hotspots[selected.id];
       detail = `
         <section class="detail" aria-live="polite">
-          <h2>${esc(h.title)}</h2>
+          <h2>${hexBadge(icons[selected.id], 'hex--mini')}${esc(h.title)}</h2>
           <p>${esc(h.text)}</p>
-          ${selected.kind === 'dive' ? '<button type="button" class="btn-primary" id="btn-dive">Hineinzoomen</button>' : ''}
+          ${selected.kind === 'dive' ? '<button type="button" class="btn-primary" id="btn-dive">Hineinzoomen ↓</button>' : ''}
         </section>`;
     }
     panel.innerHTML = `
@@ -78,11 +88,11 @@ export function createHud(handlers) {
         <h2 class="sub">Entdecken</h2>
         <ul class="explore">${hsList.map((h) => `
           <li><button type="button" data-hs="${h.id}" class="${h.kind === 'dive' ? 'is-dive' : ''}${selected && selected.id === h.id ? ' is-active' : ''}">
-            <span class="dot" aria-hidden="true"></span>${esc(l.hotspots[h.id].title)}${h.kind === 'dive' ? ' <span class="tag">tiefer</span>' : ''}
+            ${hexBadge(icons[h.id], 'hex--mini')}${esc(l.hotspots[h.id].title)}${h.kind === 'dive' ? ' <span class="tag">tiefer</span>' : ''}
           </button></li>`).join('')}
         </ul>
       </section>
-      ${facts([...l.facts, ...dyn])}
+      ${facts([...l.facts, ...dyn], l.id)}
       <section class="controls">
         <h2 class="sub">Pyrolyse-Labor</h2>
         <label class="slider">
@@ -124,27 +134,46 @@ export function createHud(handlers) {
     }
   }
 
-  let lastState = null;
   function refreshFacts() {
     if (!lastState || !level) return;
     const box = panel.querySelector('.facts');
     const l = LEVELS[current];
-    if (box) box.outerHTML = facts([...l.facts, ...(level.facts ? level.facts() : [])]);
+    if (box) box.outerHTML = facts([...l.facts, ...(level.facts ? level.facts() : [])], l.id);
   }
 
   function buildMarkers() {
     const l = LEVELS[current];
-    layer.innerHTML = '';
-    markers = level.hotspots.map((h) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = `hs ${h.kind === 'dive' ? 'hs--dive' : 'hs--info'}`;
-      b.innerHTML = `<span class="hs-ring" aria-hidden="true"></span><span class="hs-label">${esc(l.hotspots[h.id].title)}</span>`;
-      b.setAttribute('aria-label', `${l.hotspots[h.id].title}${h.kind === 'dive' ? ' – hineinzoomen' : ''}`);
-      b.addEventListener('click', () => handlers.onHotspot(h.id, true));
-      layer.appendChild(b);
-      return { h, el: b };
+    const icons = HOTSPOT_ICONS[l.id] || {};
+    for (const m of markers) { m.el.remove(); m.dot.remove(); m.path.remove(); }
+    markers = level.hotspots.map((h, i) => {
+      const dot = document.createElement('span');
+      dot.className = `hs-dot${h.kind === 'dive' ? ' hs-dot--dive' : ''}`;
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = `hsb ${h.kind === 'dive' ? 'hsb--dive' : 'hsb--info'}`;
+      el.innerHTML = `${hexBadge(icons[h.id], 'hex--hs')}<span class="hsb-label">${esc(l.hotspots[h.id].title)}${h.kind === 'dive' ? '<span class="tag">tiefer</span>' : ''}</span>`;
+      el.setAttribute('aria-label', `${l.hotspots[h.id].title}${h.kind === 'dive' ? ' – hineinzoomen' : ''}`);
+      el.style.transitionDelay = `${i * 70}ms`;
+      el.addEventListener('click', () => handlers.onHotspot(h.id, true));
+      const path = document.createElementNS(SVG_NS, 'path');
+      path.setAttribute('class', `leader${h.kind === 'dive' ? ' leader--dive' : ''}`);
+      layer.append(dot, el);
+      leaders.appendChild(path);
+      return { h, el, dot, path, x: NaN, y: NaN, w: 0, hgt: 0 };
     });
+  }
+
+  // freier Bereich zwischen Leiter, Tafel, Kopf- und Fußleiste
+  function stageRect(width) {
+    const r = (sel) => $(sel).getBoundingClientRect();
+    const lad = r('.ladder'), pan = r('#panel'), top = r('.topbar'), bot = r('.bottombar');
+    const narrow = width <= 860;
+    return {
+      x0: narrow ? 8 : lad.right + 10,
+      x1: pan.width > 0 && pan.left > width * 0.5 ? pan.left - 10 : width - 8,
+      y0: (narrow ? lad.bottom : top.bottom) + 8,
+      y1: (narrow && pan.width > 0 ? pan.top : bot.top) - 8,
+    };
   }
 
   return {
@@ -161,6 +190,10 @@ export function createHud(handlers) {
       $('#btn-down').disabled = !lv.hotspots.some((h) => h.kind === 'dive');
       $('#sb-method').textContent = lv.method;
       render(state);
+      panel.classList.remove('is-entering');
+      void panel.offsetWidth;
+      panel.classList.add('is-entering');
+      panel.scrollTop = 0;
       buildMarkers();
     },
     select(id, state) {
@@ -176,18 +209,62 @@ export function createHud(handlers) {
       layer.classList.toggle('is-hidden', hidden);
     },
     updateMarkers(camera, width, height) {
+      leaders.setAttribute('viewBox', `0 0 ${width} ${height}`);
       const v = camera.position.clone();
-      const panel = document.getElementById('panel').getBoundingClientRect();
-      const flipAt = (panel.width > 0 && panel.left > width * 0.5 ? panel.left : width) - 240;
-      for (const { h, el } of markers) {
-        const p = h.pos.clone().project(camera);
+      const rect = stageRect(width);
+      const reach = width <= 860 ? 64 : 112;
+      const items = [];
+      for (const m of markers) {
+        const p = m.h.pos.clone().project(camera);
         let visible = p.z < 1 && Math.abs(p.x) < 1.05 && Math.abs(p.y) < 1.05;
-        if (visible && h.normal) visible = h.normal.dot(v.clone().sub(h.pos)) > 0;
-        el.classList.toggle('is-off', !visible);
+        if (visible && m.h.normal) visible = m.h.normal.dot(v.clone().sub(m.h.pos)) > 0;
+        m.el.classList.toggle('is-off', !visible);
+        m.dot.classList.toggle('is-off', !visible);
+        m.path.classList.toggle('is-off', !visible);
         if (!visible) continue;
-        const x = ((p.x + 1) / 2) * width;
-        el.style.transform = `translate(${x}px, ${((1 - p.y) / 2) * height}px)`;
-        el.classList.toggle('is-left', x > flipAt);
+        m.ax = ((p.x + 1) / 2) * width;
+        m.ay = ((1 - p.y) / 2) * height;
+        if (!m.w) { m.w = m.el.offsetWidth; m.hgt = m.el.offsetHeight; }
+        items.push(m);
+      }
+      if (!items.length) return;
+      // Abzeichen vom Schwerpunkt der Punkte weg nach außen setzen, dann sanft entzerren und im freien Bereich halten
+      const cx = items.reduce((s, m) => s + m.ax, 0) / items.length;
+      const cy = items.reduce((s, m) => s + m.ay, 0) / items.length;
+      items.forEach((m, i) => {
+        let dx = m.ax - cx, dy = m.ay - cy;
+        const len = Math.hypot(dx, dy);
+        if (len < 1) { dx = i % 2 ? -1 : 1; dy = -0.7; } else { dx /= len; dy /= len; }
+        dy -= 0.25;
+        const n = Math.hypot(dx, dy);
+        m.tx = m.ax + (dx / n) * reach;
+        m.ty = m.ay + (dy / n) * reach;
+      });
+      for (let it = 0; it < 6; it++) {
+        for (const m of items) {
+          m.tx = Math.min(Math.max(m.tx, rect.x0 + m.w / 2), rect.x1 - m.w / 2);
+          m.ty = Math.min(Math.max(m.ty, rect.y0 + m.hgt / 2), rect.y1 - m.hgt / 2);
+        }
+        for (let a = 0; a < items.length; a++) {
+          for (let b = a + 1; b < items.length; b++) {
+            const A = items[a], B = items[b];
+            const ox = (A.w + B.w) / 2 + 10 - Math.abs(A.tx - B.tx);
+            const oy = (A.hgt + B.hgt) / 2 + 8 - Math.abs(A.ty - B.ty);
+            if (ox <= 0 || oy <= 0) continue;
+            if (oy < ox) { const s = (A.ty < B.ty ? -1 : 1) * oy / 2; A.ty += s; B.ty -= s; }
+            else { const s = (A.tx < B.tx ? -1 : 1) * ox / 2; A.tx += s; B.tx -= s; }
+          }
+        }
+      }
+      for (const m of items) {
+        if (Number.isNaN(m.x)) { m.x = m.tx; m.y = m.ty; }
+        else { m.x += (m.tx - m.x) * 0.22; m.y += (m.ty - m.y) * 0.22; }
+        const left = m.x < m.ax;                       // Abzeichen links vom Punkt → Linie endet an seiner rechten Kante
+        const edgeX = left ? m.x + m.w / 2 : m.x - m.w / 2;
+        const kneeX = edgeX + (left ? 22 : -22);
+        m.el.style.transform = `translate(${(m.x - m.w / 2).toFixed(1)}px, ${(m.y - m.hgt / 2).toFixed(1)}px)`;
+        m.dot.style.transform = `translate(${m.ax.toFixed(1)}px, ${m.ay.toFixed(1)}px)`;
+        m.path.setAttribute('d', `M${m.ax.toFixed(1)} ${m.ay.toFixed(1)}L${kneeX.toFixed(1)} ${m.y.toFixed(1)}L${edgeX.toFixed(1)} ${m.y.toFixed(1)}`);
       }
     },
     updateScale(hfwMeters, widthPx) {

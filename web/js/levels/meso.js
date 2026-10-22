@@ -111,7 +111,7 @@ void main() {
   }
   ao = clamp(1.0 - 1.6 * ao, 0.0, 1.0);
   float depth = max(topY(p.xz) - p.y, 0.0);
-  float vis = mix(0.04, 1.0, exp(-depth / 2.0)) * mix(0.3, 1.0, ao) * exp(-max(t - 32.0, 0.0) * 0.035);
+  float vis = mix(0.05, 1.0, exp(-depth / 2.8)) * mix(0.45, 1.0, ao) * exp(-max(t - 32.0, 0.0) * 0.035);
   vec3 V = -rd;
   if (h.y > 0.5) {
     float fres = pow(1.0 - clamp(abs(dot(n, V)), 0.0, 1.0), 3.0);
@@ -119,8 +119,8 @@ void main() {
     gl_FragColor = vec4(pow(col * vis, vec3(2.2)), 1.0);
     return;
   }
-  float g = semShade(n, V, uDet, 0.4);
-  g *= 0.88 + 0.24 * vnoise(p * 7.0);
+  float g = semShade(n, V, uDet, 0.52);
+  g *= 0.9 + 0.2 * vnoise(p * 7.0);
   gl_FragColor = semOut(g * vis, uTint);
 }
 `;
@@ -207,7 +207,7 @@ export function create(ctx) {
     unit: 1e-8,
     method: 'Modell nach FIB-REM und Gasadsorption',
     tone: 0,
-    grain: 0.06,
+    grain: 0.045,
     resScale: 0.6,
     home: { pos: new THREE.Vector3(2.5, ty0 + 15, 23), target: new THREE.Vector3(0, ty0 - 0.3, 0) },
     orbit: { minDistance: 5, maxDistance: 70, minPolarAngle: 0.12, maxPolarAngle: 1.3, enablePan: true, screenSpacePanning: false },

@@ -275,7 +275,7 @@ export function create(ctx) {
       { value: `${fmt(poreD, 1)} nm`, label: 'Durchmesser der markierten Mikropore' },
     ],
     update(dt) {
-      uniforms.uFogStart.value = camera.position.length() - 2;
+      uniforms.uFogStart.value = camera.position.length() - 1;
       placeMolecules(dt);
       return true;
     },

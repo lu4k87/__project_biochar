@@ -16,6 +16,12 @@ const LOADERS = [
 ];
 
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const params = new URLSearchParams(location.search);
+// Prüfhilfe für Screenshots: ?freeze=0.5 hält den ersten Übergang bei diesem Fortschritt an
+const freeze = params.has('freeze') ? Math.min(0.999, Math.max(0, +params.get('freeze'))) : null;
+// Tour für Ausstellungen: ?tour (optional &dwell=Sekunden) taucht selbständig durch alle Ebenen
+const tour = params.has('tour') ? { dwell: Math.max(1, +params.get('dwell') || 12), since: 0 } : null;
+
 const canvas = document.getElementById('stage');
 let renderer;
 try {
@@ -33,14 +39,19 @@ const state = {
   levels: new Map(), loading: new Map(), poses: new Map(), time: 0,
 };
 
+// Übergang mit gleicher Zoomrate beider Bilder (je Faktor 7,2): außen fliegt die Kamera auf 1/4 des Abstands
+// und das Bild wird 1,8× vergrößert, innen kommt die Kamera von 1,8× Abstand und das Bild wächst von 1/4 auf 1.
+const ZOOM = { near: 0.25, tex: 1.8, innerFar: 1.8 };
+
 // ---------- Zusammenführung: Tonemapping je Ebene, Portal-Übergang, Vignette, Korn ----------
 const comp = new THREE.ShaderMaterial({
   uniforms: {
     tOuter: { value: null }, tInner: { value: null },
     uAnchor: { value: new THREE.Vector2(0.5, 0.5) }, uRes: { value: new THREE.Vector2(1, 1) },
-    uProg: { value: 0 }, uAspect: { value: 1 }, uTime: { value: 0 }, uFade: { value: 0 },
+    uProg: { value: 0 }, uZoomOut: { value: 1 }, uInnerS: { value: 1 }, uMaskR: { value: 0 }, uMaskW: { value: 0.02 }, uBlur: { value: 0 },
+    uAspect: { value: 1 }, uTime: { value: 0 }, uFade: { value: 0 },
     uToneOuter: { value: 0 }, uToneInner: { value: 0 }, uGrainOuter: { value: 0 }, uGrainInner: { value: 0 },
-    uRing: { value: new THREE.Color(1.0, 0.62, 0.28) },
+    uRing: { value: new THREE.Color(1.0, 0.6, 0.26) },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -48,17 +59,22 @@ const comp = new THREE.ShaderMaterial({
   fragmentShader: /* glsl */ `
     uniform sampler2D tOuter, tInner;
     uniform vec2 uAnchor, uRes;
-    uniform float uProg, uAspect, uTime, uFade, uToneOuter, uToneInner, uGrainOuter, uGrainInner;
+    uniform float uProg, uZoomOut, uInnerS, uMaskR, uMaskW, uBlur, uAspect, uTime, uFade;
+    uniform float uToneOuter, uToneInner, uGrainOuter, uGrainInner;
     uniform vec3 uRing;
     varying vec2 vUv;
     vec3 aces(vec3 x) { return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
     vec3 toSRGB(vec3 c) { c = max(c, 0.0); return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
+    // Bild um c mit Faktor scale vergrößern, optional radial verwischen (Zoom-Bewegung)
     vec3 zoomSample(sampler2D t, vec2 uv, vec2 c, float scale, float blur) {
       vec2 base = c + (uv - c) / scale;
       if (blur < 0.002) return texture2D(t, base).rgb;
       vec3 acc = vec3(0.0);
-      for (int i = 0; i < 10; i++) acc += texture2D(t, c + (base - c) * (1.0 - blur * float(i) / 10.0)).rgb;
-      return acc / 10.0;
+      for (int i = 0; i < 12; i++) {
+        float k = (float(i) / 11.0 - 0.5) * blur;
+        acc += texture2D(t, c + (base - c) * (1.0 + k)).rgb;
+      }
+      return acc / 12.0;
     }
     float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
     void main() {
@@ -71,16 +87,19 @@ const comp = new THREE.ShaderMaterial({
       } else if (p >= 0.9999) {
         col = texture2D(tInner, uv).rgb; col = mix(col, aces(col), uToneInner); grain = uGrainInner;
       } else {
-        vec3 o = zoomSample(tOuter, uv, uAnchor, mix(1.0, 3.0, p * p), 0.18 * p);
-        o = mix(o, aces(o), uToneOuter);
         vec2 q = (uv - uAnchor) * vec2(uAspect, 1.0);
         float r = length(q);
-        float R = 1.9 * smoothstep(0.0, 1.0, p);
-        vec3 ii = zoomSample(tInner, uv, uAnchor, clamp(R / 0.9, 0.08, 1.0), 0.12 * (1.0 - p));
+        vec3 o = zoomSample(tOuter, uv, uAnchor, uZoomOut, uBlur);
+        o = mix(o, aces(o), uToneOuter);
+        // inneres Bild: ganzer Frame, um den Anker auf uInnerS verkleinert
+        vec2 iuv = 0.5 + (uv - uAnchor) / uInnerS;
+        vec3 ii = zoomSample(tInner, iuv, vec2(0.5), 1.0, uBlur * 0.6);
         ii = mix(ii, aces(ii), uToneInner);
-        float m = 1.0 - smoothstep(R - 0.02 - 0.08 * p, R, r);
-        col = mix(o * (1.0 - 0.35 * p), ii, m);
-        col += uRing * exp(-pow((r - R) / (0.006 + 0.012 * p), 2.0)) * (1.0 - smoothstep(0.7, 1.0, p)) * 0.9;
+        float inFrame = step(0.0, iuv.x) * step(iuv.x, 1.0) * step(0.0, iuv.y) * step(iuv.y, 1.0);
+        float m = (1.0 - smoothstep(uMaskR - uMaskW, uMaskR, r)) * inFrame;
+        col = mix(o * (1.0 - 0.45 * p), ii, m);
+        float ring = exp(-pow((r - uMaskR) / (0.006 + 0.02 * p), 2.0)) + 0.3 * exp(-pow((r - uMaskR) / 0.09, 2.0));
+        col += uRing * ring * (1.0 - smoothstep(0.7, 1.0, p)) * 0.9;
         grain = mix(uGrainOuter, uGrainInner, m);
       }
       vec2 d = (uv - 0.5) * vec2(uAspect, 1.0);
@@ -99,9 +118,9 @@ compScene.add(compQuad);
 const compCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
 // ---------- Hilfen ----------
-const easeIn = (t) => t * t * t;
-const easeOut = (t) => 1 - Math.pow(1 - t, 3);
-const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const clampf = (x, a, b) => Math.min(b, Math.max(a, x));
+const smootherstep = (t) => { t = clampf(t, 0, 1); return t * t * t * (t * (t * 6 - 15) + 10); };
+const smooth = (a, b, x) => { const t = clampf((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 const pose = (pos, target) => ({ pos: pos.clone(), target: target.clone() });
 
 // Kamera zwischen zwei Posen: Ziel linear, Abstand logarithmisch (gleichmäßiges Zoomgefühl)
@@ -115,21 +134,16 @@ function lerpPose(cam, a, b, k) {
   return tgt;
 }
 
-function projectUV(world, camera) {
-  const p = world.clone().project(camera);
-  return new THREE.Vector2(Math.min(0.95, Math.max(0.05, (p.x + 1) / 2)), Math.min(0.95, Math.max(0.05, (p.y + 1) / 2)));
-}
-
 function viewSize() {
   return { w: window.innerWidth, h: window.innerHeight, dpr: renderer.getPixelRatio() };
 }
 
 // Bildmitte der Szene in die freie Fläche zwischen Skalen-Leiter und Infotafel legen
 function stageShift() {
-  const panel = document.getElementById('panel');
-  const ladder = document.querySelector('.ladder');
   if (window.innerWidth <= 860 || document.body.classList.contains('panel-collapsed')) return 0;
-  return (panel.getBoundingClientRect().width - ladder.getBoundingClientRect().width) / 2;
+  const panel = document.getElementById('panel').getBoundingClientRect();
+  const ladder = document.querySelector('.ladder').getBoundingClientRect();
+  return (panel.width - ladder.width) / 2;
 }
 
 function fitLevel(lv) {
@@ -192,11 +206,12 @@ function activate(lv) {
   if (state.controls) state.controls.dispose();
   const c = new OrbitControls(lv.camera, canvas);
   c.enableDamping = true;
-  c.dampingFactor = 0.08;
-  c.rotateSpeed = 0.6;
-  c.zoomSpeed = 0.9;
+  c.dampingFactor = 0.045;
+  c.rotateSpeed = 0.5;
+  c.zoomSpeed = 0.7;
+  c.panSpeed = 0.6;
   Object.assign(c, { ...lv.orbit, autoRotate: !reduced && !!lv.orbit.autoRotate });
-  c.autoRotateSpeed = 0.45;
+  c.autoRotateSpeed = 0.22;
   c.target.copy(lv.target);
   c.addEventListener('start', () => { c.autoRotate = false; state.focus = null; });
   c.update();
@@ -225,15 +240,13 @@ async function goTo(target, via = null) {
   const adjacent = Math.abs(target - from.index) === 1;
   const outer = down ? from : to;
   const inner = down ? to : from;
-  let anchorWorld, anchorUV = new THREE.Vector2(0.5, 0.5);
+  let anchorWorld;
   if (down) {
     anchorWorld = via ? via.pos.clone() : state.controls.target.clone();
-    if (via) anchorUV = projectUV(anchorWorld, from.camera);
-    state.poses.set(from.index, { ...pose(from.camera.position, state.controls.target), anchorWorld, anchorUV, adjacent: adjacent && !!via });
+    state.poses.set(from.index, { ...pose(from.camera.position, state.controls.target), anchorWorld: anchorWorld.clone(), adjacent: adjacent && !!via });
   } else {
     const saved = state.poses.get(to.index);
-    if (saved && saved.adjacent && adjacent) { anchorWorld = saved.anchorWorld.clone(); anchorUV = saved.anchorUV.clone(); }
-    else anchorWorld = to.home.target.clone();
+    anchorWorld = saved && saved.adjacent && adjacent ? saved.anchorWorld.clone() : to.home.target.clone();
   }
   state.controls.enabled = false;
   state.focus = null;
@@ -241,24 +254,24 @@ async function goTo(target, via = null) {
   const near = (p) => {
     const dir = p.pos.clone().sub(anchorWorld);
     const dist = dir.length();
-    return { pos: anchorWorld.clone().addScaledVector(dir.normalize(), Math.max(dist * 0.08, 1e-4)), target: anchorWorld.clone() };
+    return { pos: anchorWorld.clone().addScaledVector(dir.normalize(), Math.max(dist * ZOOM.near, 1e-4)), target: anchorWorld.clone() };
   };
+  const far = (p) => ({ pos: p.target.clone().add(p.pos.clone().sub(p.target).multiplyScalar(ZOOM.innerFar)), target: p.target.clone() });
   let outerFrom, outerTo, innerFrom, innerTo;
   if (down) {
     outerFrom = pose(from.camera.position, state.controls.target);
     outerTo = near(outerFrom);
     innerTo = pose(to.home.pos, to.home.target);
-    innerFrom = { pos: innerTo.target.clone().add(innerTo.pos.clone().sub(innerTo.target).multiplyScalar(2.6)), target: innerTo.target.clone() };
+    innerFrom = far(innerTo);
   } else {
     const saved = state.poses.get(to.index);
     outerTo = saved && adjacent ? pose(saved.pos, saved.target) : pose(to.home.pos, to.home.target);
     outerFrom = near(outerTo);
     innerFrom = pose(from.camera.position, state.controls.target);
-    innerTo = { pos: innerFrom.target.clone().add(innerFrom.pos.clone().sub(innerFrom.target).multiplyScalar(2.6)), target: innerFrom.target.clone() };
+    innerTo = far(innerFrom);
   }
-  comp.uniforms.uAnchor.value.copy(anchorUV);
   state.tr = {
-    t: 0, dur: reduced ? 0.8 : adjacent ? 2.6 : 2.0, down, outer, inner, to,
+    t: 0, dur: reduced ? 1.0 : adjacent ? 4.4 : 3.4, down, outer, inner, to, anchorWorld,
     outerFrom, outerTo, innerFrom, innerTo,
   };
   hud.hideMarkers(true);
@@ -267,22 +280,36 @@ async function goTo(target, via = null) {
 function stepTransition(dt) {
   const tr = state.tr;
   tr.t = freeze !== null ? freeze : Math.min(1, tr.t + dt / tr.dur);
-  const t = tr.t;
+  const e = smootherstep(tr.t);
+  const p = tr.down ? e : 1 - e;            // 0 = nur äußeres Bild, 1 = nur inneres
   if (reduced) {
-    comp.uniforms.uProg.value = tr.down ? t : 1 - t;
+    lerpPose(tr.outer.camera, tr.outerFrom, tr.outerTo, tr.down ? 0 : 1);
+    lerpPose(tr.inner.camera, tr.innerFrom, tr.innerTo, tr.down ? 1 : 0);
   } else {
-    lerpPose(tr.outer.camera, tr.outerFrom, tr.outerTo, tr.down ? easeIn(t) : easeOut(t));
-    lerpPose(tr.inner.camera, tr.innerFrom, tr.innerTo, tr.down ? easeOut(smooth(0.2, 1, t)) : easeIn(smooth(0, 0.8, t)));
-    comp.uniforms.uProg.value = tr.down ? smooth(0.22, 1, t) : 1 - smooth(0, 0.78, t);
+    lerpPose(tr.outer.camera, tr.outerFrom, tr.outerTo, e);
+    lerpPose(tr.inner.camera, tr.innerFrom, tr.innerTo, e);
   }
-  if (t >= 1) {
+  // Anker im äußeren Bild – wandert mit der Kamerafahrt zur Bildmitte
+  const a = tr.anchorWorld.clone().project(tr.outer.camera);
+  const u = comp.uniforms;
+  u.uAnchor.value.set(clampf((a.x + 1) / 2, 0.08, 0.92), clampf((a.y + 1) / 2, 0.08, 0.92));
+  u.uProg.value = p;
+  u.uZoomOut.value = Math.pow(ZOOM.tex, p);
+  const s = Math.pow(ZOOM.near, 1 - p);     // Größe des inneren Bildes
+  u.uInnerS.value = s;
+  const frameR = s * 0.46 * Math.min(1, u.uAspect.value) * smooth(0, 0.1, p);
+  u.uMaskR.value = frameR + (1.8 - frameR) * smooth(0.55, 1, p);
+  u.uMaskW.value = 0.012 + 0.1 * p;
+  u.uBlur.value = reduced ? 0 : 0.14 * Math.sin(Math.PI * p);
+  if (tr.t >= 1) {
     const to = tr.to;
     const end = tr.down ? tr.innerTo : tr.outerTo;
     to.camera.position.copy(end.pos);
     to.camera.lookAt(end.target);
     to.target = end.target.clone();
     state.tr = null;
-    comp.uniforms.uProg.value = 0;
+    u.uProg.value = 0;
+    u.uBlur.value = 0;
     activate(to);
     hud.hideMarkers(false);
   }
@@ -323,8 +350,14 @@ const hud = createHud({
     if (!h) return;
     if (fromMarker && h.kind === 'dive') { diveHotspot(id); return; }
     hud.select(id, state);
-    state.controls.autoRotate = false;
-    state.focus = { from: state.controls.target.clone(), to: state.controls.target.clone().lerp(h.pos, 0.6), t: 0 };
+    const c = state.controls;
+    c.autoRotate = false;
+    // Blick sanft zum Punkt schwenken und ein Stück heranfahren
+    state.focus = {
+      t: 0,
+      fromT: c.target.clone(), toT: c.target.clone().lerp(h.pos, 0.6),
+      fromP: c.object.position.clone(), toP: c.object.position.clone().lerp(h.pos, 0.1),
+    };
   },
   onTemp: (v) => { state.pendingTemp = v; },
   onRh: (v) => {
@@ -369,11 +402,6 @@ window.addEventListener('hashchange', () => {
 window.addEventListener('resize', resize);
 document.getElementById('btn-panel').addEventListener('click', () => requestAnimationFrame(resize));
 
-// Tour für Ausstellungen: ?tour (optional &dwell=Sekunden) taucht selbständig durch alle Ebenen
-const params = new URLSearchParams(location.search);
-// Prüfhilfe für Screenshots: ?freeze=0.5 hält den ersten Übergang bei diesem Fortschritt an
-const freeze = params.has('freeze') ? Math.min(0.999, Math.max(0, +params.get('freeze'))) : null;
-const tour = params.has('tour') ? { dwell: Math.max(1, +params.get('dwell') || 10), since: 0 } : null;
 if (tour) ['pointerdown', 'wheel', 'keydown'].forEach((ev) => window.addEventListener(ev, () => { tour.dwell = Infinity; }, { once: true }));
 function stepTour(real) {
   if (!tour || state.tr || state.intro || !state.active) return;
@@ -401,11 +429,8 @@ function frame(now) {
   }
   const { w, h } = viewSize();
   const lv = state.active;
-  if (state.tr) {
-    stepTransition(real);
-  } else {
-    stepTour(real);
-  }
+  if (state.tr) stepTransition(real);
+  else stepTour(real);
   if (state.tr) {
     render(state.tr.outer, dt, true);
     render(state.tr.inner, dt, true);
@@ -417,14 +442,17 @@ function frame(now) {
     comp.uniforms.uGrainInner.value = state.tr.inner.grain;
   } else if (lv) {
     if (state.intro) {
-      state.intro.t = Math.min(1, state.intro.t + real / 2.4);
-      lerpPose(lv.camera, state.intro.from, state.intro.to, easeOut(state.intro.t));
+      state.intro.t = Math.min(1, state.intro.t + real / state.intro.dur);
+      lerpPose(lv.camera, state.intro.from, state.intro.to, smootherstep(state.intro.t));
       if (state.intro.t >= 1) { state.intro = null; state.controls.enabled = true; state.controls.update(); }
     } else {
       if (state.focus) {
-        state.focus.t = Math.min(1, state.focus.t + real / 0.9);
-        state.controls.target.lerpVectors(state.focus.from, state.focus.to, easeOut(state.focus.t));
-        if (state.focus.t >= 1) state.focus = null;
+        const f = state.focus;
+        f.t = Math.min(1, f.t + real / 1.6);
+        const k = smootherstep(f.t);
+        state.controls.target.lerpVectors(f.fromT, f.toT, k);
+        lv.camera.position.lerpVectors(f.fromP, f.toP, k);
+        if (f.t >= 1) state.focus = null;
       }
       state.controls.update(dt);
     }
@@ -438,7 +466,7 @@ function frame(now) {
     hud.updateScale(hfw, w);
     hud.updateMarkers(lv.camera, w, h);
   }
-  comp.uniforms.uFade.value = Math.min(1, comp.uniforms.uFade.value + real / 1.2);
+  comp.uniforms.uFade.value = Math.min(1, comp.uniforms.uFade.value + real / 1.4);
   comp.uniforms.uTime.value = state.time;
   renderer.setRenderTarget(null);
   renderer.render(compScene, compCam);
@@ -451,17 +479,19 @@ async function start() {
   const first = m ? Math.min(LOADERS.length - 1, Math.max(0, +m[1] - 1)) : 0;
   const lv = await getLevel(first);
   activate(lv);
-  if (first === 0 && !reduced) {
+  if (first === 0 && !reduced && freeze === null) {
+    // Auftakt: von weiter weg und leicht versetzt langsam heranfahren
     const to = pose(lv.home.pos, lv.home.target);
-    const from = { pos: to.target.clone().add(to.pos.clone().sub(to.target).multiplyScalar(1.9)).add(new THREE.Vector3(0, 2.5, 0)), target: to.target.clone() };
+    const off = to.pos.clone().sub(to.target).multiplyScalar(2.4).applyAxisAngle(new THREE.Vector3(0, 1, 0), -0.55);
+    off.y += 2.2;
+    const from = { pos: to.target.clone().add(off), target: to.target.clone() };
     lerpPose(lv.camera, from, to, 0);
     state.controls.enabled = false;
-    state.intro = { t: 0, from, to };
+    state.intro = { t: 0, dur: 5.2, from, to };
   }
   document.body.classList.add('is-ready');
   requestAnimationFrame(frame);
   if (freeze !== null) {
-    state.intro = null;
     state.controls.enabled = true;
     diveHotspot();
   }

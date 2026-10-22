@@ -16,7 +16,7 @@ Ergänzt die gemeinsamen Regeln aller Projekte (`~/.claude/CLAUDE.md` → `~/ai_
 |---|---|
 | `web/index.html` | Einstieg der Seite (ohne Build, ES-Module + Importmap) |
 | `web/js/main.js` | Renderer, Ebenen laden, Portal-Übergang, Eingaben, Zusammenführung (Tonemapping, Korn) |
-| `web/js/hud.js`, `web/css/biochar.css` | Bedienoberfläche: Skalen-Leiter, Infotafel, Hotspots, REM-Datenleiste, Regler |
+| `web/js/hud.js`, `web/js/icons.js`, `web/css/biochar.css` | Bedienoberfläche: Skalen-Leiter und Hotspots als Hex-Abzeichen mit Leitlinien (Vorlage `_inspiration` 2026-10-22), Infotafel, REM-Datenleiste, Regler |
 | `web/js/content.js` | alle Texte, Kennzahlen und Quellen je Ebene |
 | `web/js/science.js` | Kennwerte über der Pyrolysetemperatur (IPCC, EBC, Kelvin-Gleichung, Nano-Struktur) |
 | `web/js/voronoi.js`, `wood.js`, `walls.js`, `sem.js` | Power-Diagramm, Buchen-Gewebe, Wände als Instanzen, REM-Shader |
@@ -30,6 +30,6 @@ Ergänzt die gemeinsamen Regeln aller Projekte (`~/.claude/CLAUDE.md` → `~/ai_
 ## 5. Arbeitsweise
 - **Start:** `npm run serve` (= `python3 -m http.server 8470 --bind 127.0.0.1 --directory web`) → `http://localhost:8470/` · Ebene direkt: `#ebene=1` … `#ebene=7`.
 - **Parameter:** `?tour` (optional `&dwell=Sekunden`) taucht selbständig durch alle Ebenen (Ausstellung, endet bei Eingabe) · `?freeze=0.5` hält den ersten Übergang an (nur für Screenshots).
-- **Prüfungen (Definition of Done):** `node tests/science.test.js` · Seite im Headless-Chrome je geänderter Ebene laden (`#ebene=n`), Konsole ohne Fehler, Screenshot ansehen (hell + dunkel, 1440 px und 390 px). Zeitabläufe (Intro, Übergänge) nur mit echter GPU prüfen (`--enable-gpu --use-angle=gl`), SwiftShader liefert zu wenige Bilder.
+- **Prüfungen (Definition of Done):** `node tests/science.test.js` · Seite im Headless-Chrome je geänderter Ebene laden (`#ebene=n`), Konsole ohne Fehler, Screenshot ansehen (hell + dunkel, 1440 px und 390 px). Zeitabläufe (Intro, Übergänge) nur mit echter GPU und Echtzeit prüfen (`--enable-gpu --use-angle=gl --timeout=8000`): SwiftShader liefert zu wenige Bilder, `--virtual-time-budget` friert CSS-Animationen ein (Tafel bleibt blass, Ladering bleibt stehen). Zustand der Logik stattdessen per `--dump-dom --timeout=7000` prüfen: `<body class="is-ready">` ohne `is-loading`, `#hotspots` ohne `is-hidden` außerhalb eines Übergangs.
 - **Wissenschaft:** jede Zahl in `content.js`/`science.js` braucht eine Quelle in `SOURCES` oder steht als „Modell“/„Richtwert“ gekennzeichnet.
 - **Commit + Push:** direkt in diesem Repo (Remote noch offen), Skill `commit`.
