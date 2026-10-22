@@ -18,7 +18,8 @@ Dann `http://localhost:8470/` öffnen. Für Ausstellungen: `http://localhost:847
 | oranges Hex-Abzeichen oder sein Punkt | eine Ebene tiefer fliegen (durchgehender Flug ≈ 5 s, die nächste Ebene bildet sich weich) |
 | weißes Hex-Abzeichen | Kamera schwenkt hin, Erklärung in der Infotafel |
 | am Zoom-Anschlag weiterscrollen | Ebene tiefer bzw. zurück |
-| Skalen-Leiter links, Tasten `1`–`7` | direkt zu einer Ebene |
+| Zoom-Schiene links: Hex-Marke oder Tasten `1`–`7` | direkt zu einer Ebene |
+| Zoom-Schiene: Knopf ziehen | Bildbreite stufenlos (log-Skala 20 cm → 0,5 nm); über den Anschlag der Ebene hinaus losgelassen → tiefer bzw. zurück |
 | `Esc` / `Bild ↑` · `Bild ↓` | Ebene zurück · tiefer |
 | Regler „Pyrolysetemperatur“ | Kennwerte (IPCC, EBC) und Nano-Struktur ändern sich |
 | Regler „Luftfeuchte“ (Ebene 5) | Poren füllen sich nach der Kelvin-Gleichung mit Wasser |

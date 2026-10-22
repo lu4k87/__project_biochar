@@ -26,8 +26,9 @@ const MOODS = [
   { top: [0.022, 0.028, 0.060], bot: [0.006, 0.008, 0.018], pool: [0.5, 0.55, 0.6, 0.08], dust: [0.45, 2.2] },
 ];
 
-// Übergang: beide Kameras zoomen mit derselben Rate – außen auf 35 % des Abstands zum Anker, innen von 1/0,35 × Abstand
-const ZOOM = { near: 0.35 };
+// Übergang: beide Kameras zoomen mit derselben Rate – außen auf 35 % des Abstands zum Anker, innen von 1/0,35 × Abstand;
+// angekommen wird mit 1,3-fachem Abstand der Heimpose (Überblick zuerst, dann zoomt der Besucher selbst)
+const ZOOM = { near: 0.35, arrive: 1.3 };
 const DIVE_SECONDS = 5.0;
 
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -50,7 +51,7 @@ renderer.setClearColor(0x000000, 0);   // Ebenen rendern transparent, der Hinter
 const env = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
 
 const state = {
-  index: -1, active: null, controls: null, tr: null, intro: null, focus: null, dragging: false, breath: 1,
+  index: -1, active: null, controls: null, tr: null, intro: null, focus: null, dolly: null, dragging: false, breath: 1,
   temp: 550, rh: 0.8, pendingTemp: null, lastTemp: 0,
   levels: new Map(), loading: new Map(), poses: new Map(), time: 0,
 };
@@ -210,10 +211,9 @@ function stageShift() {
   return (panel.width - ladder.width) / 2;
 }
 
-// während eines Übergangs rendern beide Ebenen höchstens mit Pixelverhältnis 1 (flüssig auf Retina)
 function fitLevel(lv) {
   const { w, h, dpr } = viewSize();
-  const s = (lv.resScale || 1) * (state.tr ? Math.min(1, 1 / dpr) : 1);
+  const s = lv.resScale || 1;
   lv.rt.setSize(Math.max(2, Math.round(w * dpr * s)), Math.max(2, Math.round(h * dpr * s)));
   lv.camera.aspect = w / h;
   lv.camera.setViewOffset(w, h, stageShift(), 0, w, h);
@@ -280,12 +280,13 @@ function activate(lv) {
   Object.assign(c, { ...lv.orbit, autoRotate: !reduced && !!lv.orbit.autoRotate });
   c.autoRotateSpeed = 0.22;
   c.target.copy(lv.target);
-  c.addEventListener('start', () => { c.autoRotate = false; state.focus = null; state.dragging = true; });
+  c.addEventListener('start', () => { c.autoRotate = false; state.focus = null; state.dolly = null; state.dragging = true; });
   c.addEventListener('end', () => { state.dragging = false; });
   c.update();
   state.controls = c;
   setMood(moodA, lv.index);
   hud.setLevel(lv.index, lv, state);
+  hud.setRailRange(hfwOf(lv, c.minDistance), hfwOf(lv, c.maxDistance));
   history.replaceState(null, '', `#ebene=${lv.index + 1}`);
   lv.dirty = true;
   for (const [k, other] of state.levels) {
@@ -295,9 +296,9 @@ function activate(lv) {
       state.levels.delete(k);
     }
   }
-  idle(() => {
-    if (lv.index + 1 < LOADERS.length && state.index === lv.index) getLevel(lv.index + 1, true);
-  });
+  setTimeout(() => idle(() => {
+    if (lv.index + 1 < LOADERS.length && state.index === lv.index && !state.tr) getLevel(lv.index + 1, true);
+  }), 3000);
 }
 
 // Auftakt abbrechen, sobald der Besucher eingreift – die Kamera bleibt, wo sie gerade ist
@@ -337,11 +338,16 @@ async function goTo(target, via = null) {
     return { pos: anchorWorld.clone().addScaledVector(dir.normalize(), Math.max(dist * ZOOM.near, 1e-4)), target: anchorWorld.clone() };
   };
   const far = (p) => ({ pos: p.target.clone().add(p.pos.clone().sub(p.target).multiplyScalar(1 / ZOOM.near)), target: p.target.clone() });
+  const arrival = (lv) => {
+    const dir = lv.home.pos.clone().sub(lv.home.target);
+    const d = Math.min(dir.length() * ZOOM.arrive, (lv.orbit.maxDistance || Infinity) * 0.95);
+    return { pos: lv.home.target.clone().addScaledVector(dir.normalize(), d), target: lv.home.target.clone() };
+  };
   let outerFrom, outerTo, innerFrom, innerTo;
   if (down) {
     outerFrom = pose(from.camera.position, state.controls.target);
     outerTo = near(outerFrom);
-    innerTo = pose(to.home.pos, to.home.target);
+    innerTo = arrival(to);
     innerFrom = far(innerTo);
   } else {
     const saved = state.poses.get(to.index);
@@ -356,8 +362,6 @@ async function goTo(target, via = null) {
   };
   setMood(moodA, outer.index);
   setMood(moodB, inner.index);
-  fitLevel(outer);
-  fitLevel(inner);
   hud.hideMarkers(true);
 }
 
@@ -395,8 +399,6 @@ function stepTransition(dt) {
     state.tr = null;
     u.uProg.value = 0;
     u.uBlur.value = 0;
-    fitLevel(tr.outer);
-    fitLevel(tr.inner);
     activate(to);
     hud.hideMarkers(false);
   }
@@ -460,6 +462,19 @@ const hud = createHud({
       fromT: c.target.clone(), toT: c.target.clone().lerp(h.pos, 0.6),
       fromP: c.object.position.clone(), toP: c.object.position.clone().lerp(h.pos, 0.1),
     };
+  },
+  // Zoom-Schiene: Bildbreite → Kameraabstand; losgelassen jenseits des Anschlags → Ebene wechseln
+  onRail: (hfw, phase) => {
+    if (state.tr || !state.active) return;
+    endIntro();
+    const lv = state.active, c = state.controls;
+    const dist = hfw / (2 * Math.tan(THREE.MathUtils.degToRad(lv.camera.fov) / 2) * lv.camera.aspect * lv.unit);
+    c.autoRotate = false;
+    state.focus = null;
+    state.dolly = { to: clampf(dist, c.minDistance, c.maxDistance) };
+    if (phase !== 'end') return;
+    if (dist > c.maxDistance * 1.05 && lv.index > 0) goTo(lv.index - 1);
+    else if (dist < c.minDistance * 0.95) diveHotspot();
   },
   onTemp: (v) => { state.pendingTemp = v; },
   onRh: (v) => {
@@ -551,6 +566,15 @@ function frame(now) {
       if (state.intro.t >= 1) endIntro();
     } else {
       undoBreath(lv);
+      if (state.dolly) {
+        // Abstand logarithmisch nachführen, Blickrichtung bleibt
+        const t = state.controls.target;
+        const dir = lv.camera.position.clone().sub(t);
+        const d = dir.length();
+        const next = Math.exp(Math.log(d) + (Math.log(state.dolly.to) - Math.log(d)) * Math.min(1, real * 7));
+        lv.camera.position.copy(t).addScaledVector(dir.divideScalar(d), next);
+        if (Math.abs(Math.log(next / state.dolly.to)) < 0.003) state.dolly = null;
+      }
       if (state.focus) {
         const f = state.focus;
         f.t = Math.min(1, f.t + real / 1.6);

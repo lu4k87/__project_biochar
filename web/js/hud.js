@@ -1,5 +1,5 @@
-// Bedienoberfläche über der 3D-Szene: Skalen-Leiter aus Hex-Abzeichen, Infotafel, Hotspots mit Leitlinien,
-// REM-Datenleiste, Regler. Bildsprache: Hexagon-Badge + Leitlinie zum Objekt (Infografik-Vorlage).
+// Bedienoberfläche über der 3D-Szene: Zoom-Schiene (vertikal, log-Skala, ziehbar), Infotafel, Hotspots mit
+// Leitlinien, REM-Datenleiste, Regler. Bildsprache: Hexagon-Badge + Leitlinie zum Objekt (Infografik-Vorlage).
 
 import { LEVELS, SOURCES } from './content.js';
 import { properties, fmt, T_MIN, T_MAX } from './science.js';
@@ -9,8 +9,15 @@ const $ = (sel) => document.querySelector(sel);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
+// Zoom-Schiene: Bildbreite in Metern, logarithmisch von 20 cm (oben) bis 0,5 nm (unten)
+const SCALE_M = { piece: 4e-2, tissue: 1e-3, cells: 2e-4, wall: 2.5e-5, meso: 3e-7, micro: 1e-8, atoms: 2e-9 };
+const LOG_TOP = Math.log10(0.2);
+const LOG_BOT = Math.log10(5e-10);
+const railFrac = (m) => Math.min(1, Math.max(0, (Math.log10(m) - LOG_TOP) / (LOG_BOT - LOG_TOP)));
+const railMeters = (f) => Math.pow(10, LOG_TOP + (LOG_BOT - LOG_TOP) * f);
+
 export function createHud(handlers) {
-  const ladder = $('#ladder');
+  const rail = $('#ladder');
   const panel = $('#panel-body');
   const layer = $('#hotspots');
   const leaders = $('#leaders');
@@ -21,15 +28,78 @@ export function createHud(handlers) {
   let selected = null;
   let lastState = null;
 
-  ladder.innerHTML = LEVELS.map((l, i) => `
-    <li><button type="button" data-level="${i}" aria-label="Ebene ${i + 1}: ${esc(l.title)}, ${esc(l.scale)}">
-      ${hexBadge(LEVEL_ICONS[l.id], 'hex--lad')}
-      <span class="lad-text"><span class="lad-scale">${esc(l.scale)}</span><span class="lad-name">${esc(l.name)}</span></span>
-    </button></li>`).join('');
-  ladder.addEventListener('click', (e) => {
+  // ---------- Zoom-Schiene ----------
+  rail.innerHTML = `
+    <div class="rail-track"></div>
+    <div class="rail-range"></div>
+    <div class="rail-hit"></div>
+    ${LEVELS.map((l, i) => `
+      <button type="button" class="rail-level" data-level="${i}" style="--y:${(railFrac(SCALE_M[l.id]) * 100).toFixed(2)}%"
+        aria-label="Ebene ${i + 1}: ${esc(l.title)}, ${esc(l.scale)}">
+        ${hexBadge(LEVEL_ICONS[l.id], 'hex--rail')}
+        <span class="rail-text"><span class="rail-scale">${esc(l.scale)}</span><span class="rail-name">${esc(l.name)}</span></span>
+      </button>`).join('')}
+    <div class="rail-knob" aria-hidden="true"><span class="rail-knob-dot"></span><span class="rail-knob-label">–</span></div>
+    <label class="visually-hidden">Vergrößerung<input type="range" class="rail-input" min="0" max="1000" step="1" value="0"></label>`;
+  const track = rail.querySelector('.rail-track');
+  const range = rail.querySelector('.rail-range');
+  const knob = rail.querySelector('.rail-knob');
+  const knobLabel = rail.querySelector('.rail-knob-label');
+  const railInput = rail.querySelector('.rail-input');
+  const levelButtons = [...rail.querySelectorAll('.rail-level')];
+  let dragging = false;
+  let railLimits = null;    // Bildbreiten am Zoom-Anschlag der aktuellen Ebene
+
+  rail.addEventListener('click', (e) => {
     const b = e.target.closest('button[data-level]');
     if (b) handlers.onJump(+b.dataset.level);
   });
+  const fracAt = (clientY) => {
+    const r = track.getBoundingClientRect();
+    return Math.min(1, Math.max(0, (clientY - r.top) / r.height));
+  };
+  const setKnob = (f) => {
+    knob.style.setProperty('--y', `${(f * 100).toFixed(3)}%`);
+    railInput.value = Math.round(f * 1000);
+  };
+  const pullHint = (m) => {
+    // über den Anschlag hinaus gezogen → Nachbar-Marke leuchtet als Ziel
+    levelButtons.forEach((b) => b.classList.remove('is-pull'));
+    if (!railLimits) return;
+    if (m > railLimits.max * 1.05 && current > 0) levelButtons[current - 1].classList.add('is-pull');
+    if (m < railLimits.min * 0.95 && level && level.hotspots.some((h) => h.kind === 'dive')) levelButtons[current + 1].classList.add('is-pull');
+  };
+  const onDrag = (e, phase) => {
+    const f = fracAt(e.clientY);
+    const m = railMeters(f);
+    setKnob(f);
+    knobLabel.textContent = formatLength(m, true);
+    pullHint(m);
+    handlers.onRail(m, phase);
+    if (phase === 'end') levelButtons.forEach((b) => b.classList.remove('is-pull'));
+  };
+  for (const el of [rail.querySelector('.rail-hit'), knob]) {
+    el.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      dragging = true;
+      rail.classList.add('is-dragging');
+      el.setPointerCapture(e.pointerId);
+      onDrag(e, 'move');
+    });
+    el.addEventListener('pointermove', (e) => { if (dragging) onDrag(e, 'move'); });
+    const stop = (e) => {
+      if (!dragging) return;
+      dragging = false;
+      rail.classList.remove('is-dragging');
+      onDrag(e, 'end');
+    };
+    el.addEventListener('pointerup', stop);
+    el.addEventListener('pointercancel', stop);
+  }
+  railInput.addEventListener('input', () => handlers.onRail(railMeters(+railInput.value / 1000), 'move'));
+  railInput.addEventListener('change', () => handlers.onRail(railMeters(+railInput.value / 1000), 'end'));
+
+  // ---------- Infotafel ----------
   $('#btn-up').addEventListener('click', () => handlers.onUp());
   $('#btn-down').addEventListener('click', () => handlers.onDown());
   $('#btn-panel').addEventListener('click', () => {
@@ -141,6 +211,7 @@ export function createHud(handlers) {
     if (box) box.outerHTML = facts([...l.facts, ...(level.facts ? level.facts() : [])], l.id);
   }
 
+  // ---------- Hotspots: Punkt, Leitlinie, Abzeichen ----------
   function buildMarkers() {
     const l = LEVELS[current];
     const icons = HOTSPOT_ICONS[l.id] || {};
@@ -156,17 +227,21 @@ export function createHud(handlers) {
       el.className = `hsb ${h.kind === 'dive' ? 'hsb--dive' : 'hsb--info'}`;
       el.innerHTML = `${hexBadge(icons[h.id], 'hex--hs')}<span class="hsb-label">${esc(l.hotspots[h.id].title)}${h.kind === 'dive' ? '<span class="tag">tiefer</span>' : ''}</span>`;
       el.setAttribute('aria-label', `${l.hotspots[h.id].title}${h.kind === 'dive' ? ' – hineinzoomen' : ''}`);
-      el.style.transitionDelay = `${i * 70}ms`;
       el.addEventListener('click', () => handlers.onHotspot(h.id, true));
       const path = document.createElementNS(SVG_NS, 'path');
       path.setAttribute('class', `leader${h.kind === 'dive' ? ' leader--dive' : ''}`);
+      path.setAttribute('pathLength', '1');
+      // Reihenfolge beim Erscheinen: Punkt → Linie zeichnet sich → Abzeichen, gestaffelt je Hotspot
+      dot.style.transitionDelay = `${i * 90}ms`;
+      path.style.transitionDelay = `${i * 90 + 120}ms`;
+      el.style.transitionDelay = `${i * 90 + 420}ms`;
       layer.append(dot, el);
       leaders.appendChild(path);
       return { h, el, dot, path, x: NaN, y: NaN, w: 0, hgt: 0 };
     });
   }
 
-  // freier Bereich zwischen Leiter, Tafel, Kopf- und Fußleiste
+  // freier Bereich zwischen Schiene, Tafel, Kopf- und Fußleiste
   function stageRect(width) {
     const r = (sel) => $(sel).getBoundingClientRect();
     const lad = r('.ladder'), pan = r('#panel'), top = r('.topbar'), bot = r('.bottombar');
@@ -185,8 +260,9 @@ export function createHud(handlers) {
       level = lv;
       selected = null;
       lastState = state;
-      ladder.querySelectorAll('button').forEach((b, i) => {
+      levelButtons.forEach((b, i) => {
         b.classList.toggle('is-current', i === index);
+        b.classList.remove('is-pull');
         if (i === index) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current');
       });
       $('#btn-up').disabled = index === 0;
@@ -198,6 +274,12 @@ export function createHud(handlers) {
       panel.classList.add('is-entering');
       panel.scrollTop = 0;
       buildMarkers();
+    },
+    setRailRange(hfwMin, hfwMax) {
+      railLimits = { min: hfwMin, max: hfwMax };
+      const y0 = railFrac(hfwMax), y1 = railFrac(hfwMin);
+      range.style.setProperty('--y0', `${(y0 * 100).toFixed(2)}%`);
+      range.style.setProperty('--y1', `${(y1 * 100).toFixed(2)}%`);
     },
     select(id, state) {
       selected = level.hotspots.find((h) => h.id === id) || null;
@@ -277,10 +359,15 @@ export function createHud(handlers) {
       const nice = [1, 2, 5, 10].map((k) => k * pow).reduce((a, b) => (Math.abs(b - target) < Math.abs(a - target) ? b : a));
       $('#scalebar-bar').style.width = `${Math.round((nice / hfwMeters) * widthPx)}px`;
       $('#scalebar-label').textContent = formatLength(nice);
-      $('#sb-hfw').textContent = formatLength(hfwMeters, true);
+      const hfwText = formatLength(hfwMeters, true);
+      $('#sb-hfw').textContent = hfwText;
       if (lv && lv.method !== $('#sb-method').textContent) $('#sb-method').textContent = lv.method;
       const mag = 0.127 / hfwMeters;   // Vergrößerung bezogen auf 127 mm Bildbreite (REM-Konvention)
       $('#sb-mag').textContent = mag < 1e5 ? `${fmt(mag, mag < 10 ? 1 : 0)} ×` : `${fmt(mag / 1e6, 1)} Mio. ×`;
+      if (!dragging) {
+        setKnob(railFrac(hfwMeters));
+        knobLabel.textContent = hfwText;
+      }
     },
     setEdgeMeter(dir, amount) {
       meter.classList.toggle('is-on', amount > 0.02);

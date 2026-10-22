@@ -4,7 +4,7 @@
 import { mulberry32, gauss, clamp, smoothstep } from './util.js';
 import { powerCells, cellEdges, polygonArea, polygonPerimeter } from './voronoi.js';
 
-export const BOUNDS = { x0: -470, y0: -320, x1: 470, y1: 320 };
+export const BOUNDS = { x0: -600, y0: -420, x1: 600, y1: 420 };
 const FIBER = 9;          // Faserabstand
 const RAY_CELL_W = 7.5;   // Breite einer Strahlzelle (tangential)
 const RING_Y = 70;        // Jahrringgrenze (radial, wächst nach +y)

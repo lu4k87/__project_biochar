@@ -13,7 +13,7 @@ export function create(ctx) {
   const rand = mulberry32(4242);
   const inside = (x, y) => {
     const ang = Math.atan2(y, x);
-    const rr = Math.pow(Math.pow(Math.abs(x) / 440, 4) + Math.pow(Math.abs(y) / 296, 4), 0.25);
+    const rr = Math.pow(Math.pow(Math.abs(x) / 570, 4) + Math.pow(Math.abs(y) / 396, 4), 0.25);
     return rr < 0.98 - 0.09 * fbm3(Math.cos(ang) * 2.2 + 5, Math.sin(ang) * 2.2 + 5, 0.5, 3);
   };
   const walls = [];
@@ -39,7 +39,7 @@ export function create(ctx) {
     tone: 0,
     grain: 0.065,
     home: { pos: new THREE.Vector3(40, -120, 760), target: new THREE.Vector3(0, 0, -20) },
-    orbit: { minDistance: 220, maxDistance: 1250, minAzimuthAngle: -0.75, maxAzimuthAngle: 0.75, minPolarAngle: 0.95, maxPolarAngle: 2.2, enablePan: true },
+    orbit: { minDistance: 220, maxDistance: 1500, minAzimuthAngle: -0.75, maxAzimuthAngle: 0.75, minPolarAngle: 0.95, maxPolarAngle: 2.2, enablePan: true },
     hotspots: [
       { id: 'vessels', kind: 'dive', pos: new THREE.Vector3(dv.x, dv.y, 0), normal: new THREE.Vector3(0, 0, 1) },
       { id: 'ring', kind: 'info', pos: new THREE.Vector3(-270, ringY(-270), 0), normal: new THREE.Vector3(0, 0, 1) },
