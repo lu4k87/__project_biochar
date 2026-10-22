@@ -15,11 +15,11 @@ Ergänzt die gemeinsamen Regeln aller Projekte (`~/.claude/CLAUDE.md` → `~/ai_
 | Ort | Zweck |
 |---|---|
 | `web/index.html` | Einstieg der Seite (ohne Build, ES-Module + Importmap) |
-| `web/js/main.js` | Renderer, Ebenen laden, durchgehender Flug (beide Kameras mit gleicher Zoomrate, weiche Überblendung um den Anker), Eingaben, Zusammenführung: gemeinsamer Hintergrund je Stimmung (`MOODS`), Tonemapping, Korn |
+| `web/js/main.js` | Renderer, Ebenen laden, durchgehender Flug (beide Kameras mit gleicher Zoomrate, weiche Überblendung um den Anker, Partikel beim Durchtauchen), Intro-Bogen, Leerlauf-Fahrt (`CINE`, je Ebene `lv.cine`), Eingaben, Zusammenführung: gemeinsamer Hintergrund und Grading je Stimmung (`MOODS`), Linse (`LENS`: Tiefenunschärfe aus der Tiefentextur je Ebene `lv.dof`, Bloom aus einer Viertel-Vorstufe `lv.bloom`, Farbsaum), Tonemapping, Korn |
 | `web/js/hud.js`, `web/js/icons.js`, `web/css/biochar.css` | Bedienoberfläche: Zoom-Schiene (vertikal, log-Skala, ziehbar → `onRail`), Hotspots als Hex-Abzeichen mit Leitlinien (Vorlage `_inspiration` 2026-10-22), Infotafel, REM-Datenleiste, Regler |
 | `web/js/content.js` | alle Texte, Kennzahlen und Quellen je Ebene |
 | `web/js/science.js` | Kennwerte über der Pyrolysetemperatur (IPCC, EBC, Kelvin-Gleichung, Nano-Struktur) |
-| `web/js/voronoi.js`, `wood.js`, `walls.js`, `sem.js` | Power-Diagramm, Buchen-Gewebe, Wände als Instanzen, REM-Shader |
+| `web/js/voronoi.js`, `wood.js`, `walls.js`, `sem.js` | Power-Diagramm, Buchen-Gewebe, Wände und REM-Instanzen (Flocken, Thyllen), REM-Shader mit gemeinsamem, langsam schwenkendem Detektor (`semDetector`), additive Mischung ohne Alpha (`ADDITIVE`) |
 | `web/js/levels/*.js` | die 7 Ebenen: `piece` → `tissue` → `cells` → `wall` → `meso` → `micro` → `atoms` |
 | `web/vendor/three/` | three.js r170 + OrbitControls, RoomEnvironment (Fremdcode, nicht ändern) |
 | `tests/science.test.js` | Prüfung der Kennwerte und der Voronoi-Zerlegung |
