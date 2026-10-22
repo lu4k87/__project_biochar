@@ -126,7 +126,6 @@ export function buildCluster(T) {
 
 export function create(ctx) {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x06070a);
   scene.environment = ctx.env;
   scene.environmentIntensity = 0.9;
   const key = new THREE.DirectionalLight(0xfff4e8, 1.8);

@@ -15,7 +15,7 @@ Ergänzt die gemeinsamen Regeln aller Projekte (`~/.claude/CLAUDE.md` → `~/ai_
 | Ort | Zweck |
 |---|---|
 | `web/index.html` | Einstieg der Seite (ohne Build, ES-Module + Importmap) |
-| `web/js/main.js` | Renderer, Ebenen laden, Portal-Übergang, Eingaben, Zusammenführung (Tonemapping, Korn) |
+| `web/js/main.js` | Renderer, Ebenen laden, durchgehender Flug (beide Kameras mit gleicher Zoomrate, weiche Überblendung um den Anker), Eingaben, Zusammenführung: gemeinsamer Hintergrund je Stimmung (`MOODS`), Tonemapping, Korn |
 | `web/js/hud.js`, `web/js/icons.js`, `web/css/biochar.css` | Bedienoberfläche: Skalen-Leiter und Hotspots als Hex-Abzeichen mit Leitlinien (Vorlage `_inspiration` 2026-10-22), Infotafel, REM-Datenleiste, Regler |
 | `web/js/content.js` | alle Texte, Kennzahlen und Quellen je Ebene |
 | `web/js/science.js` | Kennwerte über der Pyrolysetemperatur (IPCC, EBC, Kelvin-Gleichung, Nano-Struktur) |

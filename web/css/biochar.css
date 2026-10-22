@@ -83,7 +83,7 @@ button { font: inherit; color: inherit; }
 .hex--lad { width: 36px; height: 36px; }
 .hex--fact { width: 38px; height: 38px; color: var(--accent); }
 .hex--mini { width: 22px; height: 22px; }
-.hex--hs { width: 34px; height: 34px; --hex-fill: rgba(16, 16, 20, 0.92); }
+.hex--hs { width: 32px; height: 32px; --hex-fill: rgba(16, 16, 20, 0.92); }
 
 /* ---------- Raster der Leisten (Flow statt Überlagerung) ---------- */
 .hud {
@@ -393,10 +393,14 @@ body.touched .hint { opacity: 0; }
   position: absolute;
   left: 0;
   top: 0;
-  width: 10px;
-  height: 10px;
-  margin: -5px 0 0 -5px;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  padding: 0;
+  border: 0;
   border-radius: 50%;
+  cursor: pointer;
+  pointer-events: auto;
   background: #ffffff;
   box-shadow: 0 0 0 2px rgba(10, 10, 12, 0.6), 0 0 0 3px rgba(255, 255, 255, 0.5);
   transition: opacity 0.35s;
@@ -427,7 +431,7 @@ body.touched .hint { opacity: 0; }
   transition: opacity 0.35s, border-color 0.2s, background 0.2s;
   will-change: transform;
 }
-.hsb-label { font-size: 14px; font-weight: 500; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+.hsb-label { font-size: 13.5px; font-weight: 500; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
 .hsb .tag { font: 500 12px/1 var(--mono); color: #ff9a3c; }
 .hsb--dive { border-color: rgba(255, 154, 60, 0.7); }
 .hsb--dive .hex { --hex-fill: #ff9a3c; --hex-stroke: #ff9a3c; color: #1b0e03; }

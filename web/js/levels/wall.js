@@ -219,7 +219,6 @@ function modulateTube(geo, curve, segs, radial, f) {
 export function create(ctx) {
   const rand = mulberry32(9001);
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x000000);
 
   const inner = new THREE.Mesh(wallSurface(R, 1), new THREE.ShaderMaterial({
     uniforms: uniforms({ uSide: { value: 1 } }), vertexShader: VERT, fragmentShader: SURF_FRAG,

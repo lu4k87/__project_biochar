@@ -27,7 +27,6 @@ export function create(ctx) {
   }
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x000000);
   scene.add(buildWalls(walls, { openZ: 0, depth: 34, base: 0.36, edge: 0.5, edgeW: 1.1, noise: 0.45, pits: false }));
 
   const camera = new THREE.PerspectiveCamera(35, ctx.aspect, 1, 6000);

@@ -40,7 +40,6 @@ export function create(ctx) {
   }
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x000000);
   scene.add(buildWalls(walls, { openZ: 0, openX: XC, depth: 26, base: 0.38, edge: 0.55, edgeW: 0.45, noise: 0.9 }));
 
   // Hotspots: Gefäßwand an der Bruchkante, ein ganzes Gefäß, Faser, Strahl, offener Kanal

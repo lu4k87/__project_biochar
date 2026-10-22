@@ -15,7 +15,7 @@ Dann `http://localhost:8470/` öffnen. Für Ausstellungen: `http://localhost:847
 | Aktion | Wirkung |
 |---|---|
 | Ziehen / Scrollen | Kamera drehen / zoomen |
-| oranges Hex-Abzeichen | eine Ebene tiefer fliegen (Portal-Flug, ≈ 4 s) |
+| oranges Hex-Abzeichen oder sein Punkt | eine Ebene tiefer fliegen (durchgehender Flug ≈ 5 s, die nächste Ebene bildet sich weich) |
 | weißes Hex-Abzeichen | Kamera schwenkt hin, Erklärung in der Infotafel |
 | am Zoom-Anschlag weiterscrollen | Ebene tiefer bzw. zurück |
 | Skalen-Leiter links, Tasten `1`–`7` | direkt zu einer Ebene |

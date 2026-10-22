@@ -88,7 +88,7 @@ void main() {
   float t = 0.0;
   const float Y_MAX = 1.2;
   if (ro.y > Y_MAX) {
-    if (rd.y > -1e-4) { gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return; }
+    if (rd.y > -1e-4) { gl_FragColor = vec4(0.0); return; }
     t = (ro.y - Y_MAX) / -rd.y;
   }
   float tMax = t + 90.0;
@@ -100,7 +100,7 @@ void main() {
     t += max(h.x * 0.75, 0.01);
     if (t > tMax) break;
   }
-  if (!hit) { gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return; }
+  if (!hit) { gl_FragColor = vec4(0.0); return; }
   vec3 p = ro + rd * t;
   vec3 n = calcNormal(p);
   float ao = 0.0, sca = 1.0;

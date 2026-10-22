@@ -142,7 +142,6 @@ function nearestSheet(table, px, py, pz, stopBelow) {
 
 export function create(ctx) {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x05070b);
   scene.environment = ctx.env;
   scene.environmentIntensity = 0.8;
   const key = new THREE.DirectionalLight(0xffffff, 1.6);

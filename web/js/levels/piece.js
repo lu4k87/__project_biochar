@@ -185,7 +185,6 @@ function texture(c, srgb) {
 export function create(ctx) {
   const rand = mulberry32(31337);
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0b0b0d);
   scene.environment = ctx.env;
   scene.environmentIntensity = 0.65;
 
@@ -287,7 +286,15 @@ export function create(ctx) {
   shadow.rotation.x = -Math.PI / 2;
   shadow.position.y = floorY - 0.005;
   scene.add(shadow);
-  const floor = new THREE.Mesh(new THREE.CircleGeometry(30, 64), new THREE.MeshStandardMaterial({ color: 0x0d0d0f, roughness: 0.92 }));
+  // Lichtpool auf dem Tisch: warmer Fleck, der in den Hintergrund ausläuft
+  const pc = canvas(512, 512), px = pc.getContext('2d');
+  const pg = px.createRadialGradient(256, 256, 20, 256, 256, 256);
+  pg.addColorStop(0, 'rgba(96,84,70,0.95)');
+  pg.addColorStop(0.45, 'rgba(70,62,52,0.55)');
+  pg.addColorStop(1, 'rgba(50,44,38,0)');
+  px.fillStyle = pg;
+  px.fillRect(0, 0, 512, 512);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(26, 26), new THREE.MeshBasicMaterial({ map: texture(pc, true), transparent: true, depthWrite: false }));
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = floorY - 0.01;
   scene.add(floor);

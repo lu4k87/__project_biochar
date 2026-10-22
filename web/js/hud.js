@@ -146,8 +146,11 @@ export function createHud(handlers) {
     const icons = HOTSPOT_ICONS[l.id] || {};
     for (const m of markers) { m.el.remove(); m.dot.remove(); m.path.remove(); }
     markers = level.hotspots.map((h, i) => {
-      const dot = document.createElement('span');
+      const dot = document.createElement('button');
+      dot.type = 'button';
       dot.className = `hs-dot${h.kind === 'dive' ? ' hs-dot--dive' : ''}`;
+      dot.setAttribute('aria-label', l.hotspots[h.id].title);
+      dot.addEventListener('click', () => handlers.onHotspot(h.id, true));
       const el = document.createElement('button');
       el.type = 'button';
       el.className = `hsb ${h.kind === 'dive' ? 'hsb--dive' : 'hsb--info'}`;
@@ -267,7 +270,7 @@ export function createHud(handlers) {
         m.path.setAttribute('d', `M${m.ax.toFixed(1)} ${m.ay.toFixed(1)}L${kneeX.toFixed(1)} ${m.y.toFixed(1)}L${edgeX.toFixed(1)} ${m.y.toFixed(1)}`);
       }
     },
-    updateScale(hfwMeters, widthPx) {
+    updateScale(hfwMeters, widthPx, lv) {
       // runde Balkenlänge 1/2/5 × 10^n, etwa ein Fünftel der Bildbreite
       const target = hfwMeters * 0.2;
       const pow = Math.pow(10, Math.floor(Math.log10(target)));
@@ -275,6 +278,7 @@ export function createHud(handlers) {
       $('#scalebar-bar').style.width = `${Math.round((nice / hfwMeters) * widthPx)}px`;
       $('#scalebar-label').textContent = formatLength(nice);
       $('#sb-hfw').textContent = formatLength(hfwMeters, true);
+      if (lv && lv.method !== $('#sb-method').textContent) $('#sb-method').textContent = lv.method;
       const mag = 0.127 / hfwMeters;   // Vergrößerung bezogen auf 127 mm Bildbreite (REM-Konvention)
       $('#sb-mag').textContent = mag < 1e5 ? `${fmt(mag, mag < 10 ? 1 : 0)} ×` : `${fmt(mag / 1e6, 1)} Mio. ×`;
     },
