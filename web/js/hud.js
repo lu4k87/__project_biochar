@@ -250,7 +250,7 @@ export function createHud(handlers) {
       x0: narrow ? 8 : lad.right + 10,
       x1: pan.width > 0 && pan.left > width * 0.5 ? pan.left - 10 : width - 8,
       y0: (narrow ? lad.bottom : top.bottom) + 8,
-      y1: (narrow && pan.width > 0 ? pan.top : bot.top) - 8,
+      y1: Math.min(narrow && pan.width > 0 ? pan.top : Infinity, bot.top) - 8,   // mobil liegt die Knopfleiste über der Tafel
     };
   }
 
