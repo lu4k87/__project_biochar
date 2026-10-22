@@ -4,22 +4,38 @@
 import * as THREE from 'three';
 import { mulberry32, gauss, clamp } from '../util.js';
 import { nanoStructure, fmt } from '../science.js';
+import { ADDITIVE } from '../sem.js';
 
 const HALF = new THREE.Vector3(5.5, 3.6, 4.2);
 
+// Rand der Schicht (lokal, Radius 0,5 = halber Durchmesser): leicht gewellt, je Schicht anders – gleich in beiden Shadern
+const RIM_GLSL = /* glsl */ `
+float rimR(float ang, float seed) {
+  return 0.5 * (0.86 + 0.08 * sin(ang * 5.0 + seed * 20.0) + 0.06 * sin(ang * 9.0 + seed * 7.0));
+}
+`;
+
+// Schicht als dünne Platte (Dicke ≈ 0,14 nm, Atomdurchmesser): Ober-/Unterseite mit Gitter, Randband als Schichtdicke
 const SHEET_VERT = /* glsl */ `
 attribute vec4 aSheet;     // Krümmung, Sattel/Schale (−1/1), Durchmesser nm, Seed
+attribute vec2 aPart;      // Seite (+1 oben, −1 unten), 1 = Randband
 varying vec2 vLocal;
 varying vec4 vSheet;
 varying vec3 vN;
 varying vec3 vWorld;
 varying float vView;
+varying float vBand;
+${RIM_GLSL}
 void main() {
   vec3 p = position;
-  p.z = aSheet.x * (p.x * p.x + aSheet.y * p.y * p.y);
-  vec3 n = normalize(vec3(-2.0 * aSheet.x * p.x, -2.0 * aSheet.x * aSheet.y * p.y, 1.0));
-  vLocal = position.xy;
+  float ang = atan(p.y, p.x);
+  if (aPart.y > 0.5) p.xy = vec2(cos(ang), sin(ang)) * rimR(ang, aSheet.w);
+  float hw = 0.07 / aSheet.z;          // halbe Dicke in lokalen Einheiten ("half" ist in GLSL reserviert)
+  p.z = aSheet.x * (p.x * p.x + aSheet.y * p.y * p.y) + aPart.x * hw;
+  vec3 n = aPart.y > 0.5 ? normalize(vec3(p.xy, 0.0)) : aPart.x * normalize(vec3(-2.0 * aSheet.x * p.x, -2.0 * aSheet.x * aSheet.y * p.y, 1.0));
+  vLocal = p.xy;
   vSheet = aSheet;
+  vBand = aPart.y;
   vec4 wp = modelMatrix * instanceMatrix * vec4(p, 1.0);
   vWorld = wp.xyz;
   vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * n);
@@ -31,12 +47,15 @@ void main() {
 
 const SHEET_FRAG = /* glsl */ `
 uniform vec3 uColor;
+uniform vec3 uLight;
 uniform float uFogStart;
 varying vec2 vLocal;
 varying vec4 vSheet;
 varying vec3 vN;
 varying vec3 vWorld;
 varying float vView;
+varying float vBand;
+${RIM_GLSL}
 float hexDist(vec2 p) { p = abs(p); return max(dot(p, vec2(0.5, 0.8660254)), p.x); }
 vec4 hexCoords(vec2 uv) {
   const vec2 s = vec2(1.0, 1.7320508);
@@ -45,10 +64,28 @@ vec4 hexCoords(vec2 uv) {
   return dot(h.xy, h.xy) < dot(h.zw, h.zw) ? vec4(h.xy, hC.xy) : vec4(h.zw, hC.zw + 0.5);
 }
 void main() {
+  vec3 V = normalize(cameraPosition - vWorld);
+  vec3 N = normalize(vN);
+  float facing = abs(dot(N, V));
+  float fog = exp(-max(vView - uFogStart, 0.0) * 0.16);
+  float lit = 0.72 + 0.32 * abs(dot(N, uLight));
+  if (vBand > 0.5) {
+#ifdef SHEET_FILL
+    discard;
+#endif
+    // Randband = sichtbare Schichtdicke, hell im Streiflicht
+    vec3 col = uColor * (0.26 + 0.3 * (1.0 - facing)) * lit * fog;
+    gl_FragColor = vec4(pow(col, vec3(2.2)), 1.0);
+    return;
+  }
   float r = length(vLocal);
   float ang = atan(vLocal.y, vLocal.x);
-  float rim = 0.5 * (0.86 + 0.08 * sin(ang * 5.0 + vSheet.w * 20.0) + 0.06 * sin(ang * 9.0 + vSheet.w * 7.0));
-  if (r > rim) discard;
+  float rim = rimR(ang, vSheet.w);
+  // Randatome als Buckel: Abstand ≈ 0,25 nm entlang des Randes
+  float nb = max(6.0, floor(6.2832 * rim * vSheet.z / 0.25));
+  float bump = 0.5 + 0.5 * cos(ang * nb + vSheet.w * 40.0);
+  float rimB = rim + (0.05 / vSheet.z) * bump;
+  if (r > rimB) discard;
   vec2 uv = vLocal * vSheet.z / 0.246 + vSheet.w * 13.0;   // Gitterkonstante 0,246 nm, C–C 0,142 nm
   vec4 hc = hexCoords(uv);
   float e = 0.5 - hexDist(hc.xy);
@@ -57,21 +94,78 @@ void main() {
   float aa = fwidth(uv.x) * 0.9;
   float bond = 1.0 - smoothstep(0.045 - aa, 0.06 + aa, e);
   float atom = 1.0 - smoothstep(0.09 - aa, 0.12 + aa, dv);
+  // Fünfring (Schale) bzw. Siebenring (Sattel) in der Mitte gekrümmter Schichten – Ursache der Krümmung (Harris-Modell)
+  float warm = 0.0;
+  if (vSheet.w > 0.45) {
+    float nRing = vSheet.y > 0.0 ? 5.0 : 7.0;
+    float seg = 6.2832 / nRing;
+    vec2 u0 = vLocal * vSheet.z / 0.246;
+    float rr = length(u0), a0 = atan(u0.y, u0.x);
+    float RN = 0.5774 / (2.0 * sin(3.14159 / nRing));
+    float zone = 1.0 - smoothstep(RN + 0.25, RN + 0.5, rr);
+    float ak = floor(a0 / seg + 0.5) * seg;
+    float dA = length(u0 - RN * vec2(cos(ak), sin(ak)));
+    float dE = abs(rr * cos(mod(a0, seg) - seg * 0.5) - RN * cos(seg * 0.5));
+    float ringBond = (1.0 - smoothstep(0.045 - aa, 0.06 + aa, dE)) * (1.0 - smoothstep(RN * 0.6, RN * 0.75, abs(rr - RN * 0.9)));
+    float ringAtom = 1.0 - smoothstep(0.09 - aa, 0.12 + aa, dA);
+    bond = mix(bond * (1.0 - zone), ringBond, zone);
+    atom = mix(atom * (1.0 - zone), ringAtom, zone);
+    warm = zone * max(ringBond, ringAtom);
+  }
   float detail = smoothstep(0.55, 0.2, fwidth(uv.x));          // aus der Ferne: Fläche statt Gitter
   float m = mix(0.55, max(bond * 0.8, atom), detail);
-  float fog = exp(-max(vView - uFogStart, 0.0) * 0.16);
-  vec3 V = normalize(cameraPosition - vWorld);
-  float facing = abs(dot(normalize(vN), V));
 #ifdef SHEET_FILL
-  gl_FragColor = vec4(uColor * (0.05 + 0.05 * (1.0 - facing)) * fog, 1.0);
+  gl_FragColor = vec4(uColor * (0.022 + 0.022 * (1.0 - facing)) * fog, 1.0);
 #else
   if (m < 0.35) discard;
-  float edgeGlow = smoothstep(rim - 0.05, rim, r);
-  vec3 col = uColor * (0.35 + 0.55 * atom + 0.35 * (1.0 - facing) + 0.4 * edgeGlow) * fog;
+  float edgeAtoms = smoothstep(rim - 0.04, rimB, r) * bump;
+  vec3 col = uColor * (0.35 + 0.55 * atom + 0.35 * (1.0 - facing) + 0.45 * edgeAtoms) * lit * fog;
+  col = mix(col, col * vec3(1.35, 1.0, 0.62), 0.6 * warm * detail);
   gl_FragColor = vec4(pow(col, vec3(2.2)), 1.0);
 #endif
 }
 `;
+
+// Platte: Ober- und Unterseite (Polarnetz) + Randband; aPart = (Seite, Band)
+function slabGeometry(segA = 56, segR = 8) {
+  const pos = [], part = [], idx = [];
+  const face = (side) => {
+    const base = pos.length / 3;
+    for (let j = 0; j <= segR; j++) {
+      const r = (0.5 * j) / segR;
+      for (let i = 0; i < segA; i++) {
+        const a = (i / segA) * Math.PI * 2;
+        pos.push(Math.cos(a) * r, Math.sin(a) * r, 0);
+        part.push(side, 0);
+      }
+    }
+    for (let j = 0; j < segR; j++) {
+      for (let i = 0; i < segA; i++) {
+        const a = base + j * segA + i, b = base + j * segA + ((i + 1) % segA);
+        const c = a + segA, d = b + segA;
+        if (side > 0) idx.push(a, b, d, a, d, c); else idx.push(a, d, b, a, c, d);
+      }
+    }
+  };
+  face(1);
+  face(-1);
+  const base = pos.length / 3;
+  for (let i = 0; i < segA; i++) {
+    const a = (i / segA) * Math.PI * 2;
+    pos.push(Math.cos(a) * 0.5, Math.sin(a) * 0.5, 0, Math.cos(a) * 0.5, Math.sin(a) * 0.5, 0);
+    part.push(1, 1, -1, 1);
+  }
+  for (let i = 0; i < segA; i++) {
+    const a = base + i * 2, b = base + ((i + 1) % segA) * 2;
+    idx.push(a, a + 1, b + 1, a, b + 1, b);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('aPart', new THREE.Float32BufferAttribute(part, 2));
+  g.setIndex(idx);
+  g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1);
+  return g;
+}
 
 const MOLECULES = {
   co2: [['C', 0, 0, 0], ['O', 0.116, 0, 0], ['O', -0.116, 0, 0]],
@@ -90,11 +184,11 @@ function generate(T, seed) {
   const ns = nanoStructure(T);
   const units = [];
   const sheets = [];
-  const target = Math.round(260 - 70 * ns.k);
+  const target = Math.round(360 - 90 * ns.k);
   for (let tries = 0; tries < 5000 && units.length < target; tries++) {
     const c = new THREE.Vector3((rand() * 2 - 1) * HALF.x, (rand() * 2 - 1) * HALF.y, (rand() * 2 - 1) * HALF.z);
     const d = clamp(gauss(rand, ns.sheetNm, ns.sheetNm * 0.25), 0.45, 2.6);
-    if (units.some((u) => u.c.distanceTo(c) < 0.42 * (u.d + d) + 0.15)) continue;
+    if (units.some((u) => u.c.distanceTo(c) < 0.38 * (u.d + d) + 0.12)) continue;
     const n = new THREE.Vector3(gauss(rand), gauss(rand), gauss(rand)).normalize();
     // bei hoher Temperatur lokal besser ausgerichtet (Domänen)
     if (ns.k > 0.3) n.lerp(new THREE.Vector3(0.25, 1, 0.1).normalize(), (ns.k - 0.3) * 0.35).normalize();
@@ -146,21 +240,23 @@ export function create(ctx) {
   scene.environmentIntensity = 0.8;
   const key = new THREE.DirectionalLight(0xffffff, 1.6);
   key.position.set(4, 8, 6);
-  scene.add(key);
+  const rimL = new THREE.DirectionalLight(0x9fc2ff, 1.1);
+  rimL.position.set(-6, -2, -7);
+  scene.add(key, rimL);
 
-  const geo = new THREE.RingGeometry(0.001, 0.5, 48, 8);
-  const uniforms = { uColor: { value: new THREE.Color(0.62, 0.8, 1.0) }, uFogStart: { value: 10 } };
+  const geo = slabGeometry();
+  const uniforms = { uColor: { value: new THREE.Color(0.62, 0.8, 1.0) }, uFogStart: { value: 10 }, uLight: { value: new THREE.Vector3(0.4, 0.8, 0.45).normalize() } };
   const lineMat = new THREE.ShaderMaterial({ uniforms, vertexShader: SHEET_VERT, fragmentShader: SHEET_FRAG, side: THREE.DoubleSide });
   const fillMat = new THREE.ShaderMaterial({
     uniforms, vertexShader: SHEET_VERT, fragmentShader: SHEET_FRAG, side: THREE.DoubleSide,
-    defines: { SHEET_FILL: '' }, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+    defines: { SHEET_FILL: '' }, ...ADDITIVE,
   });
   const group = new THREE.Group();
   scene.add(group);
 
   // Mikropore als Sonde
   const probe = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 20), new THREE.MeshBasicMaterial({
-    color: 0xffa040, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false,
+    color: 0xffa040, opacity: 0.06, ...ADDITIVE,
   }));
   scene.add(probe);
 
@@ -266,6 +362,8 @@ export function create(ctx) {
     method: 'Modell nach XRD und HRTEM',
     tone: 1,
     grain: 0.025,
+    dof: 3.5,
+    bloom: 0.12,
     home: { pos: homePos, target: new THREE.Vector3(0, 0, 0) },
     orbit: { minDistance: 3, maxDistance: 26, enablePan: false, autoRotate: false },
     hotspots: [hs.sheet, hs.stack, hs.micropore, hs.gas],
@@ -273,8 +371,12 @@ export function create(ctx) {
       { value: `≈ ${fmt(model.ns.sheetNm, 1)} nm · ${fmt(model.ns.layers, 1)}`, label: 'mittlere Schichtgröße · Schichten je Stapel (Modell)' },
       { value: `${fmt(poreD, 1)} nm`, label: 'Durchmesser der markierten Mikropore' },
     ],
-    update(dt) {
+    update(dt, t) {
       uniforms.uFogStart.value = camera.position.length() - 1;
+      // Licht wandert langsam: Hauptlicht schwenkt, kühles Gegenlicht kreist
+      uniforms.uLight.value.set(0.4 + 0.35 * Math.sin(t * 0.09), 0.8, 0.45 + 0.35 * Math.cos(t * 0.07)).normalize();
+      key.position.set(4 + 3 * Math.sin(t * 0.09), 8, 6 + 3 * Math.cos(t * 0.07));
+      rimL.position.set(-6 * Math.cos(t * 0.05), -2, -7 * Math.sin(t * 0.05 + 1));
       placeMolecules(dt);
       return true;
     },

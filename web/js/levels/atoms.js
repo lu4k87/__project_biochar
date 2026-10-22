@@ -1,17 +1,42 @@
 // Ebene 7: ein aromatischer Cluster (Einheit Å) mit Randgruppen – Größe und Sauerstoffanteil folgen der
-// Pyrolysetemperatur. Vereinfachtes Kugel-Stab-Modell: eben, ohne Fünf-/Siebenring-Defekte.
+// Pyrolysetemperatur. Vereinfachtes Kugel-Stab-Modell: eben, ohne Fünf-/Siebenring-Defekte; konische Bindungen in
+// den Farben der Atome, weiche Elektronenwolke (van-der-Waals-Radius) und weiche Eigenschatten.
 
 import * as THREE from 'three';
 import { nanoStructure, fmt } from '../science.js';
 import { mulberry32 } from '../util.js';
+import { ADDITIVE } from '../sem.js';
 
 const A = 1.42;   // C–C aromatisch
-const ELEMENT = {
-  C: { r: 0.38, color: new THREE.Color(0.2, 0.21, 0.23) },
-  O: { r: 0.4, color: new THREE.Color(0.86, 0.2, 0.18) },
-  H: { r: 0.26, color: new THREE.Color(0.92, 0.92, 0.94) },
-  K: { r: 0.95, color: new THREE.Color(0.55, 0.3, 0.88) },
+const ELEMENT = {     // r = Kugel im Modell, vdw = van-der-Waals-Radius (Å, Bondi 1964) für die Elektronenwolke
+  C: { r: 0.38, vdw: 1.70, color: new THREE.Color(0.2, 0.21, 0.23) },
+  O: { r: 0.4, vdw: 1.52, color: new THREE.Color(0.86, 0.2, 0.18) },
+  H: { r: 0.26, vdw: 1.20, color: new THREE.Color(0.92, 0.92, 0.94) },
+  K: { r: 0.95, vdw: 2.75, color: new THREE.Color(0.55, 0.3, 0.88) },
 };
+
+// Elektronenwolke: von innen dichter, zum Rand weich auslaufend (additiv, sehr schwach)
+const CLOUD_VERT = /* glsl */ `
+varying vec3 vN;
+varying vec3 vV;
+varying vec3 vCol;
+void main() {
+  vec4 wp = modelMatrix * instanceMatrix * vec4(position, 1.0);
+  vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
+  vV = normalize(cameraPosition - wp.xyz);
+  vCol = instanceColor;
+  gl_Position = projectionMatrix * viewMatrix * wp;
+}`;
+const CLOUD_FRAG = /* glsl */ `
+uniform float uStrength;
+varying vec3 vN;
+varying vec3 vV;
+varying vec3 vCol;
+void main() {
+  float f = abs(dot(normalize(vN), normalize(vV)));
+  float dens = pow(f, 2.2);
+  gl_FragColor = vec4(vCol * dens * uStrength, 1.0);
+}`;
 const SUB = '₀₁₂₃₄₅₆₇₈₉';
 const sub = (n) => String(n).split('').map((d) => SUB[+d]).join('');
 
@@ -130,19 +155,33 @@ export function create(ctx) {
   scene.environmentIntensity = 0.9;
   const key = new THREE.DirectionalLight(0xfff4e8, 1.8);
   key.position.set(6, 10, 8);
+  key.castShadow = true;                        // weiche Eigenschatten (PCF, Rand weich)
+  key.shadow.mapSize.set(1024, 1024);
+  key.shadow.radius = 4;
+  key.shadow.bias = -0.0008;
+  key.shadow.normalBias = 0.02;
+  Object.assign(key.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 50 });
   const rim = new THREE.DirectionalLight(0x9db8ff, 1.3);
   rim.position.set(-8, -4, -6);
   scene.add(key, rim);
 
   const sphere = new THREE.SphereGeometry(1, 28, 18);
-  const cyl = new THREE.CylinderGeometry(1, 1, 1, 14, 1, true);
+  // Halbbindung als Kegelstumpf: breit am Atom (unten), schmal zur Mitte (oben)
+  const cyl = new THREE.CylinderGeometry(0.62, 1, 1, 14, 1, true);
   const atomMat = new THREE.MeshStandardMaterial({ roughness: 0.32, metalness: 0 });
-  const bondMat = new THREE.MeshStandardMaterial({ color: 0x8c9198, roughness: 0.4, metalness: 0.1 });
-  const piMat = new THREE.MeshBasicMaterial({
-    color: 0x7aa2ff, transparent: true, opacity: 0.045, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+  const bondMat = new THREE.MeshStandardMaterial({ roughness: 0.42, metalness: 0.05 });
+  const cloudGeo = new THREE.SphereGeometry(1, 24, 16);
+  const cloudMat = new THREE.ShaderMaterial({
+    uniforms: { uStrength: { value: 0.02 } }, vertexShader: CLOUD_VERT, fragmentShader: CLOUD_FRAG, ...ADDITIVE,
   });
-  const hex = new THREE.CircleGeometry(A * 1.08, 6);
-  hex.rotateZ(Math.PI / 6);
+  // π-Elektronen über und unter den Ringen: weiche Scheiben statt harter Sechsecke
+  const piMat = new THREE.ShaderMaterial({
+    uniforms: {},
+    vertexShader: /* glsl */ `varying vec2 vP; void main() { vP = position.xy; gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0); }`,
+    fragmentShader: /* glsl */ `varying vec2 vP; void main() { float r = length(vP) / ${(A * 1.15).toFixed(3)}; gl_FragColor = vec4(vec3(0.48, 0.64, 1.0) * 0.022 * (1.0 - smoothstep(0.2, 1.0, r)), 1.0); }`,
+    ...ADDITIVE, side: THREE.DoubleSide,
+  });
+  const hex = new THREE.CircleGeometry(A * 1.15, 24);
   const group = new THREE.Group();
   scene.add(group);
 
@@ -153,7 +192,7 @@ export function create(ctx) {
     carbonyl: { id: 'carbonyl', kind: 'info', pos: new THREE.Vector3(), normal: null },
     edgeh: { id: 'edgeh', kind: 'info', pos: new THREE.Vector3(), normal: null },
   };
-  let cluster, atomMesh, bondMesh, phases;
+  let cluster, atomMesh, bondMesh, cloudMesh, phases;
   const rand = mulberry32(5);
 
   function rebuild(T) {
@@ -161,16 +200,31 @@ export function create(ctx) {
     cluster = buildCluster(T);
     phases = cluster.atoms.map(() => [rand() * 6.28, rand() * 6.28, rand() * 6.28]);
     atomMesh = new THREE.InstancedMesh(sphere, atomMat, cluster.atoms.length);
-    cluster.atoms.forEach((a, k) => atomMesh.setColorAt(k, ELEMENT[a.el].color));
-    const nb = cluster.bonds.reduce((n, b) => n + b.order, 0);
+    cloudMesh = new THREE.InstancedMesh(cloudGeo, cloudMat, cluster.atoms.length);
+    cluster.atoms.forEach((a, k) => {
+      atomMesh.setColorAt(k, ELEMENT[a.el].color);
+      cloudMesh.setColorAt(k, ELEMENT[a.el].color.clone().lerp(new THREE.Color(0.55, 0.7, 1.0), 0.6));
+    });
+    const nb = cluster.bonds.reduce((n, b) => n + b.order, 0) * 2;
     bondMesh = new THREE.InstancedMesh(cyl, bondMat, nb);
+    {
+      const grey = new THREE.Color(0.62, 0.64, 0.68);
+      let n = 0;
+      for (const b of cluster.bonds) {
+        for (let o = 0; o < b.order; o++) {
+          bondMesh.setColorAt(n++, ELEMENT[cluster.atoms[b.i].el].color.clone().lerp(grey, 0.55));
+          bondMesh.setColorAt(n++, ELEMENT[cluster.atoms[b.j].el].color.clone().lerp(grey, 0.55));
+        }
+      }
+    }
+    for (const mesh of [atomMesh, bondMesh]) { mesh.castShadow = true; mesh.receiveShadow = true; }
     const pi = new THREE.InstancedMesh(hex, piMat, cluster.rings.length * 2);
     const m = new THREE.Matrix4();
     cluster.rings.forEach((r, k) => {
       pi.setMatrixAt(2 * k, m.makeTranslation(r.x, r.y, 0.95));
       pi.setMatrixAt(2 * k + 1, m.makeTranslation(r.x, r.y, -0.95));
     });
-    group.add(atomMesh, bondMesh, pi);
+    group.add(atomMesh, bondMesh, pi, cloudMesh);
     for (const [k, id] of Object.entries(cluster.marks)) {
       hs[k].pos.copy(cluster.atoms[id].p).add(new THREE.Vector3(0, 0, k === 'carboxyl' ? 1.3 : 0.7));
     }
@@ -188,24 +242,32 @@ export function create(ctx) {
         a.p.x + amp * Math.sin(t * 7.3 + ph[0]), a.p.y + amp * Math.sin(t * 8.1 + ph[1]), a.p.z + amp * Math.sin(t * 6.7 + ph[2]));
       s.setScalar(ELEMENT[a.el].r);
       atomMesh.setMatrixAt(k, m.compose(pos[k], q.identity(), s));
+      s.setScalar(ELEMENT[a.el].vdw * 0.85);
+      cloudMesh.setMatrixAt(k, m.compose(pos[k], q, s));
     });
     let n = 0;
-    const dir = new THREE.Vector3(), side = new THREE.Vector3(), mid = new THREE.Vector3();
+    const dir = new THREE.Vector3(), side = new THREE.Vector3(), c = new THREE.Vector3();
+    const q2 = new THREE.Quaternion();
     for (const b of cluster.bonds) {
       dir.subVectors(pos[b.j], pos[b.i]);
       const len = dir.length();
       dir.divideScalar(len);
-      q.setFromUnitVectors(up, dir);
+      q.setFromUnitVectors(up, dir);                    // Hälfte am Atom i: breit unten = bei i
+      q2.setFromUnitVectors(up, dir.clone().negate());  // Hälfte am Atom j
       side.set(-dir.y, dir.x, 0).normalize();
       for (let o = 0; o < b.order; o++) {
         const off = b.order === 2 ? (o === 0 ? 0.13 : -0.13) : 0;
-        mid.addVectors(pos[b.i], pos[b.j]).multiplyScalar(0.5).addScaledVector(side, off);
-        s.set(b.order === 2 ? 0.075 : 0.12, len, b.order === 2 ? 0.075 : 0.12);
-        bondMesh.setMatrixAt(n++, m.compose(mid, q, s));
+        const w = b.order === 2 ? 0.1 : 0.16;
+        s.set(w, len / 2, w);
+        c.copy(pos[b.i]).addScaledVector(dir, len / 4).addScaledVector(side, off);
+        bondMesh.setMatrixAt(n++, m.compose(c, q, s));
+        c.copy(pos[b.j]).addScaledVector(dir, -len / 4).addScaledVector(side, off);
+        bondMesh.setMatrixAt(n++, m.compose(c, q2, s));
       }
     }
     atomMesh.instanceMatrix.needsUpdate = true;
     bondMesh.instanceMatrix.needsUpdate = true;
+    cloudMesh.instanceMatrix.needsUpdate = true;
   }
 
   rebuild(ctx.temp);
@@ -216,6 +278,8 @@ export function create(ctx) {
     method: 'Molekülmodell (vereinfacht)',
     tone: 1,
     grain: 0.018,
+    dof: 2.5,
+    bloom: 0.18,
     home: { pos: new THREE.Vector3(5, 9, 21), target: new THREE.Vector3(0, 0, 0) },
     orbit: { minDistance: 6, maxDistance: 45, enablePan: false, autoRotate: true },
     hotspots: Object.values(hs),
@@ -224,6 +288,9 @@ export function create(ctx) {
       { value: fmt(cluster.hc, 2), label: 'molares H/C dieses Modell-Clusters' },
     ],
     update(dt, t) {
+      // Lichtführung: Hauptlicht wandert langsam um den Cluster, Gegenlicht pendelt
+      key.position.set(6 * Math.cos(t * 0.08) - 8 * Math.sin(t * 0.08) * 0.4, 10, 8 * Math.cos(t * 0.06) + 6 * Math.sin(t * 0.08) * 0.4);
+      rim.position.set(-8 + 3 * Math.sin(t * 0.05), -4, -6 + 3 * Math.cos(t * 0.05));
       place(t);
       return true;
     },
@@ -233,8 +300,8 @@ export function create(ctx) {
       level.dirty = true;
     },
     dispose() {
-      sphere.dispose(); cyl.dispose(); hex.dispose();
-      atomMat.dispose(); bondMat.dispose(); piMat.dispose();
+      sphere.dispose(); cyl.dispose(); hex.dispose(); cloudGeo.dispose();
+      atomMat.dispose(); bondMat.dispose(); piMat.dispose(); cloudMat.dispose();
     },
   };
   return level;

@@ -1,9 +1,11 @@
-// Ebene 3: dieselben Zellen als 3D-Bruchstück (Einheit µm): Stirnfläche als Wabe, seitlich längs aufgebrochene Röhren.
+// Ebene 3: dieselben Zellen als 3D-Bruchstück (Einheit µm): Stirnfläche als Wabe, seitlich längs aufgebrochene Röhren,
+// gezahnte Bruchkante, Splitter in den Lumina, Thyllen in zwei Gefäßen, behöfte Tüpfel auf den Fasern (Shader in sem.js).
 
 import * as THREE from 'three';
 import { woodTissue } from '../wood.js';
-import { buildWalls, disposeGroup } from '../walls.js';
-import { mulberry32, fbm3 } from '../util.js';
+import { buildWalls, buildInstances, flakeGeometry, disposeGroup } from '../walls.js';
+import { semDetector } from '../sem.js';
+import { mulberry32, fbm3, smoothstep } from '../util.js';
 
 const LZ = 340;
 
@@ -18,6 +20,8 @@ export function create(ctx) {
     const rr = Math.hypot((x - cx) / 160, (y - cy) / 118);
     return rr < 1 - 0.14 * fbm3(Math.cos(ang) * 2 + 9, Math.sin(ang) * 2 + 9, 0.3, 3);
   };
+  // Zahnkante: Faserbündel brechen verschieden lang → Sägezahn über y, zur Bruchebene hin tiefer
+  const saw = (y) => { const f = y / 34 + 0.35 * fbm3(y * 0.02, 1.7, 2.2, 2); return f - Math.floor(f); };
 
   const walls = [];
   for (const e of wood.edges) {
@@ -32,15 +36,51 @@ export function create(ctx) {
     const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
     if (!inside(mx, my) || Math.hypot(b[0] - a[0], b[1] - a[1]) < 0.3) continue;
     let z1 = -2.5 * fbm3(mx * 0.03, my * 0.03, 2.5, 3) - rand() * 0.6;
-    // Faserbruch: nahe der Bruchkante enden viele Wände früher → gestufte Kante wie im REM-Bild
-    if (mx > XC - 45 && rand() < 0.45) z1 = -(15 + rand() * 170);
+    const near = smoothstep(XC - 50, XC - 4, mx);
+    if (near > 0.02) z1 = Math.min(z1, -(6 + (20 + 150 * saw(my)) * near + 12 * rand() * near));
     else if (rand() < 0.03) z1 -= 5 + rand() * 30;
     const z0 = -LZ - rand() * 40;
     walls.push({ a, b, t: e.t, kind: e.kind, seed: e.seed, late: e.late, z0, z1, openEnd });
   }
 
+  const sem = { openZ: 0, openX: XC, depth: 26, base: 0.38, edge: 0.55, edgeW: 0.45, noise: 0.9 };
   const scene = new THREE.Scene();
-  scene.add(buildWalls(walls, { openZ: 0, openX: XC, depth: 26, base: 0.38, edge: 0.55, edgeW: 0.45, noise: 0.9 }));
+  scene.add(buildWalls(walls, sem));
+
+  // Splitter in den längs geöffneten Röhren und in Gefäßen nahe der Bruchkante
+  const flakes = [];
+  for (const s of wood.sites) {
+    if (!inside(s.x, s.y) || s.x > XC) continue;
+    const cut = s.x > XC - 12;
+    if (!cut && !(s.type === 1 && s.x > XC - 70)) continue;
+    const n = cut ? (rand() < 0.5 ? 1 : 0) : 3 + Math.floor(rand() * 3);
+    for (let k = 0; k < n; k++) {
+      const sz = 0.8 + Math.pow(rand(), 2) * (s.type === 1 ? 5 : 2.2);
+      const x = cut ? XC - 1.2 - rand() * 2 : s.x + (rand() - 0.5) * (s.r || 3);
+      const y = s.y + (rand() - 0.5) * (s.r || 3);
+      flakes.push({ p: [x, y, -(25 + rand() * 280)], s: [sz, sz * 0.6, sz * 0.25], r: [rand() * 3, rand() * 3, rand() * 3] });
+    }
+  }
+  scene.add(buildInstances(flakeGeometry(5), flakes, { ...sem, base: 0.44, noise: 2 }));
+
+  // Thyllen (Buche: v. a. im Rotkern): blasige Auswüchse der Parenchymzellen, die ein Gefäß abschnittsweise füllen
+  const tyloses = [];
+  const fill = (vs, zTop, zBot, clipX) => {
+    for (let z = zTop; z > zBot; z -= vs.r * (0.55 + 0.3 * rand())) {
+      const rad = vs.r * (0.48 + 0.25 * rand());
+      const off = (vs.r - rad) * 0.7;
+      const a = rand() * 6.28;
+      let x = vs.x + Math.cos(a) * off * rand();
+      if (clipX !== undefined) x = Math.min(x, clipX - 0.25 * rad);
+      tyloses.push({ p: [x, vs.y + Math.sin(a) * off * rand(), z], s: [rad, rad * (0.85 + 0.25 * rand()), rad * (1.2 + 0.5 * rand())], r: [0, 0, rand() * 3] });
+    }
+  };
+  const vessels = wood.vessels.filter((o) => o !== v && inside(o.x, o.y) && o.r > 7);
+  const cutVessel = vessels.find((o) => o.x < XC && o.x + o.r > XC - 1);
+  const faceVessel = vessels.filter((o) => o.x < XC - 40).sort((p, q) => Math.hypot(p.x - cx + 40, p.y - cy + 30) - Math.hypot(q.x - cx + 40, q.y - cy + 30))[0];
+  if (cutVessel) fill(cutVessel, -60, -250, XC);
+  if (faceVessel) fill(faceVessel, -10, -140);
+  scene.add(buildInstances(new THREE.SphereGeometry(1, 22, 16), tyloses, { ...sem, base: 0.4, noise: 1.2 }));
 
   // Hotspots: Gefäßwand an der Bruchkante, ein ganzes Gefäß, Faser, Strahl, offener Kanal
   const pitWall = walls
@@ -77,9 +117,15 @@ export function create(ctx) {
     method: 'REM · Sekundärelektronen (Modell)',
     tone: 0,
     grain: 0.07,
+    dof: 2.0,
+    bloom: 0.05,
     home: { pos: new THREE.Vector3(v.x + 235, v.y + 100, 215), target: new THREE.Vector3(v.x - 30, v.y + 5, -95) },
     orbit: { minDistance: 60, maxDistance: 800, minPolarAngle: 0.2, maxPolarAngle: 2.9, enablePan: true },
     hotspots,
+    update(dt, t) {
+      semDetector(t);
+      return true;
+    },
     dispose() { disposeGroup(scene); },
   };
 }

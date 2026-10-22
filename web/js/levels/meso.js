@@ -1,18 +1,20 @@
 // Ebene 5: Nanoporen in der Zellwand (Einheit 10 nm), Raymarching über ein hierarchisches 3D-Voronoi:
-// große Zellen = Makro-/große Mesoporen, kleine Zellen in den Wänden = Mesoporen; Wasser nach Kelvin-Gleichung.
+// große Zellen = Makro-/große Mesoporen mit verdickten Plateau-Rändern (Streben an den Kanten, Knoten an den Ecken),
+// dünne Wände dazwischen mit feinen Mesoporen; Wasser nach Kelvin-Gleichung.
 
 import * as THREE from 'three';
-import { SEM_GLSL } from '../sem.js';
+import { SEM_GLSL, SEM_DET, semDetector } from '../sem.js';
 import { hash33, vnoise3 } from '../util.js';
 import { kelvinDiameterNm, fmt } from '../science.js';
 
-const CELL = 6.0, THICK = 1.3, CS = 1.1, TS = 0.55;
+const CELL = 6.0, THICK = 1.0, STRUT = 0.55, NODE = 0.95, CS = 0.75, TS = 0.4;
 
 const FRAG = /* glsl */ `
 precision highp float;
 uniform vec3 uCamPos;
 uniform mat4 uCamMatrix;
 uniform mat4 uInvProj;
+uniform mat4 uViewProj;
 uniform float uWaterD;
 uniform vec3 uDet;
 uniform vec3 uTint;
@@ -20,6 +22,8 @@ varying vec2 vUv;
 ${SEM_GLSL}
 const float CELL = ${CELL.toFixed(2)};
 const float THICK = ${THICK.toFixed(2)};
+const float STRUT = ${STRUT.toFixed(2)};
+const float NODE = ${NODE.toFixed(2)};
 const float CS = ${CS.toFixed(2)};
 const float TS = ${TS.toFixed(2)};
 
@@ -37,10 +41,12 @@ float vn(vec3 p) {
   return mix(mix(mix(h33(i).x, h33(i + vec3(1, 0, 0)).x, u.x), mix(h33(i + vec3(0, 1, 0)).x, h33(i + vec3(1, 1, 0)).x, u.x), u.y),
              mix(mix(h33(i + vec3(0, 0, 1)).x, h33(i + vec3(1, 0, 1)).x, u.x), mix(h33(i + vec3(0, 1, 1)).x, h33(i + vec3(1, 1, 1)).x, u.x), u.y), u.z);
 }
-// F1, F2 und Zufallswert der nächsten Zelle
-vec3 worley(vec3 p) {
+// F1–F4 (Abstände zu den vier nächsten Zellpunkten) und Zufallswert der nächsten Zelle:
+// F2−F1 ≈ Abstand zur Wand, F3−F1 ≈ zur Kante (drei Zellen), F4−F1 ≈ zur Ecke (vier Zellen)
+vec4 worley4(vec3 p, out float id) {
   vec3 i = floor(p), f = p - i;
-  float d1 = 9.0, d2 = 9.0, id = 0.0;
+  vec4 F = vec4(9.0);
+  id = 0.0;
   for (int z = -1; z <= 1; z++)
   for (int y = -1; y <= 1; y++)
   for (int x = -1; x <= 1; x++) {
@@ -48,28 +54,40 @@ vec3 worley(vec3 p) {
     vec3 o = h33(i + g);
     vec3 r = g + 0.15 + 0.7 * o - f;
     float d = dot(r, r);
-    if (d < d1) { d2 = d1; d1 = d; id = fract(o.x * 7.13 + o.y * 3.77); }
-    else if (d < d2) { d2 = d; }
+    if (d < F.x) { F = vec4(d, F.xyz); id = fract(o.x * 7.13 + o.y * 3.77); }
+    else if (d < F.y) { F = vec4(F.x, d, F.yz); }
+    else if (d < F.z) { F.zw = vec2(d, F.z); }
+    else if (d < F.w) { F.w = d; }
   }
-  return vec3(sqrt(d1), sqrt(d2), id);
+  return sqrt(F);
+}
+vec3 worley(vec3 p) {
+  float id;
+  vec4 F = worley4(p, id);
+  return vec3(F.x, F.y, id);
 }
 float topY(vec2 xz) { return -0.6 + 1.1 * vn(vec3(xz * 0.09, 3.0)) + 0.45 * vn(vec3(xz * 0.31, 7.0)); }
 
 // x = Abstand, y = Material (0 Kohlenstoff, 1 Wasser)
 vec2 map(vec3 p) {
-  vec3 wl = worley(p / CELL);
-  float th = THICK * smoothstep(0.22, 0.42, vn(p * 0.28)) * (0.75 + 0.5 * vn(p * 0.9 + 11.0));
-  float dL = (wl.y - wl.x) * 0.5 * CELL - th * 0.5;        // > 0: in großer Pore
-  vec3 ws = worley(p / CS + 31.0);
-  float dS = (ws.y - ws.x) * 0.5 * CS - TS * 0.5;          // > 0: in kleiner Pore
+  float idL;
+  vec4 F = worley4(p / CELL, idL);
   float top = p.y - topY(p.xz);
-  float solid = max(max(dL, dS), top);
+  // Wände nur in der Tiefe und nicht überall: an der Oberfläche bleibt das offene Gitter aus Streben und Knoten
+  float th = THICK * smoothstep(0.38, 0.55, vn(p * 0.28)) * smoothstep(0.0, 3.0, -top) * (0.75 + 0.5 * vn(p * 0.9 + 11.0));
+  float dSheet = (F.y - F.x) * 0.5 * CELL - th * 0.5;                                   // Wand (Fläche)
+  float dSN = min((F.z - F.x) * 0.5 * CELL - STRUT * (0.8 + 0.4 * vn(p * 0.6 + 3.0)),   // Strebe an der Kante
+                  (F.w - F.x) * 0.5 * CELL - NODE);                                       // Knoten an der Ecke
+  vec3 ws = worley(p / CS + 31.0);
+  float dS = (ws.y - ws.x) * 0.5 * CS - TS * 0.5;          // > 0: in kleiner Pore (nur die dünnen Wände sind gelocht)
+  float solid = max(min(dSN, max(dSheet, dS)), top);
   float water = 1e3;
   if (uWaterD > 0.0) {
-    float sizeL = CELL * 10.0 * (0.45 + 0.5 * wl.z);       // nm
+    float dBig = min(dSheet, dSN);                         // > 0: in großer Pore
+    float sizeL = CELL * 10.0 * (0.45 + 0.5 * idL);        // nm
     float sizeS = CS * 10.0 * (0.3 + 0.55 * ws.z);
-    if (sizeL < uWaterD) water = min(water, max(-dL, top + 0.05));
-    if (sizeS < uWaterD) water = min(water, max(max(-dS, dL), top + 0.05));
+    if (sizeL < uWaterD) water = min(water, max(-dBig, top + 0.05));
+    if (sizeS < uWaterD) water = min(water, max(max(-dS, dSheet), top + 0.05));
   }
   return water < solid ? vec2(water, 1.0) : vec2(solid, 0.0);
 }
@@ -88,20 +106,22 @@ void main() {
   float t = 0.0;
   const float Y_MAX = 1.2;
   if (ro.y > Y_MAX) {
-    if (rd.y > -1e-4) { gl_FragColor = vec4(0.0); return; }
+    if (rd.y > -1e-4) { gl_FragDepth = 1.0; gl_FragColor = vec4(0.0); return; }
     t = (ro.y - Y_MAX) / -rd.y;
   }
   float tMax = t + 90.0;
   vec2 h = vec2(1.0, 0.0);
   bool hit = false;
-  for (int i = 0; i < 120; i++) {
+  for (int i = 0; i < 140; i++) {
     h = map(ro + rd * t);
     if (h.x < 0.0015 * t + 0.004) { hit = true; break; }
     t += max(h.x * 0.75, 0.01);
     if (t > tMax) break;
   }
-  if (!hit) { gl_FragColor = vec4(0.0); return; }
+  if (!hit) { gl_FragDepth = 1.0; gl_FragColor = vec4(0.0); return; }
   vec3 p = ro + rd * t;
+  vec4 clip = uViewProj * vec4(p, 1.0);
+  gl_FragDepth = clamp(clip.z / clip.w * 0.5 + 0.5, 0.0, 1.0);   // echte Tiefe für die Tiefenunschärfe
   vec3 n = calcNormal(p);
   float ao = 0.0, sca = 1.0;
   for (int i = 1; i <= 4; i++) {
@@ -119,7 +139,7 @@ void main() {
     gl_FragColor = vec4(pow(col * vis, vec3(2.2)), 1.0);
     return;
   }
-  float g = semShade(n, V, uDet, 0.52);
+  float g = semShade(n, V, uDet, 0.44);
   g *= 0.9 + 0.2 * vnoise(p * 7.0);
   gl_FragColor = semOut(g * vis, uTint);
 }
@@ -137,25 +157,30 @@ void main() {
 function worley(x, y, z) {
   const ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z);
   const fx = x - ix, fy = y - iy, fz = z - iz;
-  let d1 = 9, d2 = 9, id = 0;
+  const F = [9, 9, 9, 9];
+  let id = 0;
   for (let c = -1; c <= 1; c++) for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) {
     const o = hash33(ix + a, iy + b, iz + c);
     const rx = a + 0.15 + 0.7 * o[0] - fx, ry = b + 0.15 + 0.7 * o[1] - fy, rz = c + 0.15 + 0.7 * o[2] - fz;
     const d = rx * rx + ry * ry + rz * rz;
-    if (d < d1) { d2 = d1; d1 = d; id = (o[0] * 7.13 + o[1] * 3.77) % 1; }
-    else if (d < d2) d2 = d;
+    if (d < F[0]) { F.splice(0, 0, d); F.length = 4; id = (o[0] * 7.13 + o[1] * 3.77) % 1; }
+    else if (d < F[1]) { F.splice(1, 0, d); F.length = 4; }
+    else if (d < F[2]) { F.splice(2, 0, d); F.length = 4; }
+    else if (d < F[3]) F[3] = d;
   }
-  return [Math.sqrt(d1), Math.sqrt(d2), id];
+  return [...F.map(Math.sqrt), id];
 }
 const topY = (x, z) => -0.6 + 1.1 * vnoise3(x * 0.09, z * 0.09, 3) + 0.45 * vnoise3(x * 0.31, z * 0.31, 7);
 function fields(x, y, z) {
   const wl = worley(x / CELL, y / CELL, z / CELL);
   const sm = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
-  const th = THICK * sm(0.22, 0.42, vnoise3(x * 0.28, y * 0.28, z * 0.28)) * (0.75 + 0.5 * vnoise3(x * 0.9 + 11, y * 0.9 + 11, z * 0.9 + 11));
-  const dL = (wl[1] - wl[0]) * 0.5 * CELL - th * 0.5;
+  const th = THICK * sm(0.38, 0.55, vnoise3(x * 0.28, y * 0.28, z * 0.28)) * sm(0, 3, topY(x, z) - y) * (0.75 + 0.5 * vnoise3(x * 0.9 + 11, y * 0.9 + 11, z * 0.9 + 11));
+  const dSheet = (wl[1] - wl[0]) * 0.5 * CELL - th * 0.5;
+  const dSN = Math.min((wl[2] - wl[0]) * 0.5 * CELL - STRUT * (0.8 + 0.4 * vnoise3(x * 0.6 + 3, y * 0.6 + 3, z * 0.6 + 3)),
+    (wl[3] - wl[0]) * 0.5 * CELL - NODE);
   const ws = worley(x / CS + 31, y / CS + 31, z / CS + 31);
   const dS = (ws[1] - ws[0]) * 0.5 * CS - TS * 0.5;
-  return { dL, dS, sizeS: CS * 10 * (0.3 + 0.55 * ws[2]) };
+  return { dSheet, dSN, dBig: Math.min(dSheet, dSN), dS, sizeS: CS * 10 * (0.3 + 0.55 * ws[4]) };
 }
 
 function findSpots() {
@@ -168,9 +193,9 @@ function findSpots() {
       const ty = topY(x, z);
       const f = fields(x, ty - 0.12, z);
       const classes = [];
-      if (f.dL < -0.35 && f.dS < -0.12) classes.push(['wallpore', ty + 0.05]);
-      if (f.dL > 1.6) classes.push(['macro', ty - 0.9]);
-      if (f.dL < -0.2 && f.dS > 0.12) classes.push(['meso', ty - 0.12], ['water', ty - 0.12]);
+      if (f.dSheet < -0.25 && f.dSN > 0.3 && f.dS < -0.08) classes.push(['wallpore', ty + 0.05]);
+      if (f.dBig > 1.6) classes.push(['macro', ty - 0.9]);
+      if (f.dSheet < -0.15 && f.dSN > 0.2 && f.dS > 0.08) classes.push(['meso', ty - 0.12], ['water', ty - 0.12]);
       for (const [c, y] of classes) {
         const d = Math.hypot(x - want[c][0], z - want[c][1]);
         if (!best[c] || d < best[c].d) best[c] = { d, pos: new THREE.Vector3(x, y, z) };
@@ -187,12 +212,13 @@ export function create(ctx) {
     uCamPos: { value: new THREE.Vector3() },
     uCamMatrix: { value: new THREE.Matrix4() },
     uInvProj: { value: new THREE.Matrix4() },
+    uViewProj: { value: new THREE.Matrix4() },
     uWaterD: { value: kelvinDiameterNm(ctx.rh) },
-    uDet: { value: new THREE.Vector3(-0.45, 0.75, 0.5).normalize() },
+    uDet: SEM_DET,
     uTint: { value: new THREE.Color(0.93, 0.95, 0.98) },
   };
   const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({
-    uniforms, vertexShader: VERT, fragmentShader: FRAG, depthTest: false, depthWrite: false,
+    uniforms, vertexShader: VERT, fragmentShader: FRAG, depthTest: true, depthWrite: true, depthFunc: THREE.AlwaysDepth,
   }));
   quad.frustumCulled = false;
   scene.add(quad);
@@ -208,7 +234,9 @@ export function create(ctx) {
     method: 'Modell nach FIB-REM und Gasadsorption',
     tone: 0,
     grain: 0.045,
-    resScale: 0.6,
+    resScale: 0.8,
+    dof: 2.5,
+    bloom: 0.04,
     home: { pos: new THREE.Vector3(2.5, ty0 + 15, 23), target: new THREE.Vector3(0, ty0 - 0.3, 0) },
     orbit: { minDistance: 5, maxDistance: 70, minPolarAngle: 0.12, maxPolarAngle: 1.3, enablePan: true, screenSpacePanning: false },
     hotspots: [
@@ -218,12 +246,14 @@ export function create(ctx) {
       { id: 'water', kind: 'info', pos: at('water', [3, ty0, 5.5]), normal: up },
     ],
     facts: () => [{ value: `≈ ${fmt(kelvinDiameterNm(rh), 0)} nm`, label: `bei ${fmt(rh * 100)} % Luftfeuchte mit Wasser gefüllte Poren (Kelvin-Gleichung)` }],
-    update() {
+    update(dt, t) {
       camera.updateMatrixWorld();
       uniforms.uCamPos.value.copy(camera.position);
       uniforms.uCamMatrix.value.copy(camera.matrixWorld);
       uniforms.uInvProj.value.copy(camera.projectionMatrixInverse);
-      return false;
+      uniforms.uViewProj.value.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+      semDetector(t);
+      return true;
     },
     setParam(name, value) {
       if (name !== 'rh') return;

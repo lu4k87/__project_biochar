@@ -2,6 +2,7 @@
 
 import * as THREE from 'three';
 import { semMaterial } from './sem.js';
+import { hash13f } from './util.js';
 
 // walls: [{a:[x,y], b:[x,y], t, kind, seed, late, z0, z1}]
 export function buildWalls(walls, semOpts) {
@@ -55,6 +56,33 @@ export function buildWalls(walls, semOpts) {
 
   group.userData.materials = [wallMat, jointMat];
   return group;
+}
+
+// Beliebige Teile als Instanzen im REM-Look: list = [{ p: [x, y, z], s: [sx, sy, sz], r: [rx, ry, rz] }]
+export function buildInstances(geometry, list, semOpts) {
+  const mesh = new THREE.InstancedMesh(geometry, semMaterial(semOpts), list.length);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), s = new THREE.Vector3();
+  list.forEach((it, k) => {
+    e.set(it.r[0], it.r[1], it.r[2]);
+    mesh.setMatrixAt(k, m.compose(p.fromArray(it.p), q.setFromEuler(e), s.fromArray(it.s)));
+  });
+  mesh.instanceMatrix.needsUpdate = true;
+  return mesh;
+}
+
+// Splitter und Bruchflocken: kantige Scherbe (verzerrtes Ikosaeder, gleiche Ecken gleich verschoben → geschlossen)
+export function flakeGeometry(seed = 1) {
+  const g = new THREE.IcosahedronGeometry(1, 0);
+  const pos = g.attributes.position;
+  const v = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i);
+    const h = hash13f(v.x * 17.3 + seed, v.y * 11.1 + seed * 3, v.z * 7.7);
+    v.multiplyScalar(0.6 + 0.7 * h);
+    pos.setXYZ(i, v.x, v.y, v.z);
+  }
+  g.computeVertexNormals();
+  return g;
 }
 
 export function disposeGroup(obj) {
