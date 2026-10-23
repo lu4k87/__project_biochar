@@ -1,4 +1,5 @@
 [Claude] [Biochar] Ebene 5 umsetzen: Hero-Porenwand + Feuchte-Animation
+übernommen von dev-ws-16 am 2026-10-23 23:49
 Rückmeldung an: [Claude] dev-ws-fa
 Kontext: Projekt ~/__project_biochar (AGENTS.md lesen), Seite
   `npm run serve` → http://localhost:8470/#ebene=5. Stand ed8ec33
