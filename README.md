@@ -8,14 +8,14 @@ Interaktive 3D-Webseite: Vom Stück Buchen-Pflanzenkohle zoomt die Kamera Ebene 
 npm run serve          # oder: python3 -m http.server 8470 --bind 127.0.0.1 --directory web
 ```
 
-Dann `http://localhost:8470/` öffnen. Für Ausstellungen: `http://localhost:8470/?tour` fliegt selbständig durch alle Ebenen (endet bei der ersten Eingabe), `&dwell=15` setzt die Verweildauer in Sekunden. Kein Build, keine Abhängigkeiten außer einem Browser mit WebGL 2; three.js liegt in `web/vendor/` (läuft offline, nur die Schrift kommt von Google Fonts).
+Dann `http://localhost:8470/` öffnen. Für Ausstellungen: `http://localhost:8470/?tour` fliegt selbständig durch alle Ebenen (endet bei der ersten Eingabe), `&dwell=15` setzt die Verweildauer in Sekunden. `?q=1`, `?q=2` oder `?q=3` erzwingt die Qualitätsstufe (Leicht · Mittel · Fein). Kein Build, keine Abhängigkeiten außer einem Browser mit WebGL 2; three.js liegt in `web/vendor/` (läuft offline, nur die Schrift kommt von Google Fonts).
 
 ## Bedienung
 
 | Aktion | Wirkung |
 |---|---|
 | Ziehen / Scrollen | Kamera drehen / zoomen |
-| oranges Hex-Abzeichen oder sein Punkt | eine Ebene tiefer fliegen (durchgehender Flug ≈ 5 s, die nächste Ebene bildet sich weich) |
+| oranges Hex-Abzeichen oder sein Punkt | eine Ebene tiefer fliegen (durchgehender Flug ≈ 5 s, die nächste Ebene bildet sich ohne sichtbare Überblendung aus dem Zoom) |
 | weißes Hex-Abzeichen | Kamera schwenkt hin, Erklärung in der Infotafel |
 | am Zoom-Anschlag weiterscrollen | Ebene tiefer bzw. zurück |
 | Zoom-Schiene links: Hex-Marke oder Tasten `1`–`7` | direkt zu einer Ebene |
@@ -23,6 +23,7 @@ Dann `http://localhost:8470/` öffnen. Für Ausstellungen: `http://localhost:847
 | `Esc` / `Bild ↑` · `Bild ↓` | Ebene zurück · tiefer |
 | Regler „Pyrolysetemperatur“ | Kennwerte (IPCC, EBC) und Nano-Struktur ändern sich |
 | Regler „Luftfeuchte“ (Ebene 5) | Poren füllen sich nach der Kelvin-Gleichung mit Wasser |
+| Regler „Qualität“ (oben rechts) | Darstellung in drei Stufen Leicht · Mittel · Fein: Auflösung, Kantenglättung, Tiefenunschärfe, Bloom, Schatten, Detailgrad der Ebenen – für flüssige Bilder auch auf schwächeren Rechnern; ohne eigene Wahl misst die Seite kurz die Bildrate und schaltet bei Bedarf herunter („auto“) |
 
 ## Die sieben Ebenen
 

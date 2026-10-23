@@ -20,6 +20,7 @@ uniform float uTS;      // Wandstärke zwischen den kleinen Poren: dünner = meh
 uniform float uTime;
 uniform vec3 uDet;
 uniform vec3 uTint;
+uniform vec2 uMarch;     // Raymarching je Qualitätsstufe: Schritte (max. 140) und Schrittfaktor
 varying vec2 vUv;
 ${SEM_GLSL}
 const float CELL = ${CELL.toFixed(2)};
@@ -115,9 +116,10 @@ void main() {
   vec2 h = vec2(1.0, 0.0);
   bool hit = false;
   for (int i = 0; i < 140; i++) {
+    if (float(i) >= uMarch.x) break;
     h = map(ro + rd * t);
     if (h.x < 0.0015 * t + 0.004) { hit = true; break; }
-    t += max(h.x * 0.75, 0.01);
+    t += max(h.x * uMarch.y, 0.01);
     if (t > tMax) break;
   }
   if (!hit) { gl_FragDepth = 1.0; gl_FragColor = vec4(0.0); return; }
@@ -228,6 +230,7 @@ export function create(ctx) {
     uTime: { value: 0 },
     uDet: SEM_DET,
     uTint: { value: new THREE.Color(0.93, 0.95, 0.98) },
+    uMarch: { value: new THREE.Vector2(140, 0.75) },
   };
   const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({
     uniforms, vertexShader: VERT, fragmentShader: FRAG, depthTest: true, depthWrite: true, depthFunc: THREE.AlwaysDepth,
@@ -270,6 +273,8 @@ export function create(ctx) {
     },
     setParam(name, value) {
       if (name === 'temp') { uniforms.uTS.value = poreWall(value); level.dirty = true; return; }
+      // Qualitätsstufe: weniger, dafür längere Schritte (Leicht ≈ 63, Mittel ≈ 98, Fein 140)
+      if (name === 'quality') { uniforms.uMarch.value.set(Math.round(140 * value.detail), 1 - 0.25 * value.detail); level.dirty = true; return; }
       if (name !== 'rh') return;
       rh = value;
       uniforms.uWaterD.value = kelvinDiameterNm(value);

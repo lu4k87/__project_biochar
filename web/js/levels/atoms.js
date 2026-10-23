@@ -410,6 +410,17 @@ export function create(ctx) {
       return true;
     },
     setParam(name, value) {
+      if (name === 'quality') {
+        // Schatten je Stufe: aus (Leicht), 512 px (Mittel), 1024 px (Fein) – Schattenkarte neu anlegen
+        key.castShadow = value.shadows;
+        const size = value.detail >= 1 ? 1024 : 512;
+        if (key.shadow.mapSize.x !== size) {
+          key.shadow.mapSize.set(size, size);
+          if (key.shadow.map) { key.shadow.map.dispose(); key.shadow.map = null; }
+        }
+        level.dirty = true;
+        return;
+      }
       if (name !== 'temp') return;
       shownT = value;
       level.dirty = true;
