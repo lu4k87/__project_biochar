@@ -1,4 +1,5 @@
 [Claude] [Biochar] Zellwand: Falschfarben + dezente Bewegung umsetzen
+übernommen von dev-ws-82 am 2026-10-23 07:29
 Rückmeldung an: [Claude] dev-ws-f3
 
 Kontext: Biochar-3D-Seite (~/__project_biochar). Ebene 4 Zellwand = web/js/levels/wall.js (REM-Look aus web/js/sem.js, Tönung je Material über uniform uTint). Vorschau entschieden (User, 23.10.): http://localhost:8085/__treasury__allprojects/biochar/vorschauen/2026-10-23-zellwand-falschfarben-und-dezente-bewegung/index.html. Fertiger Prototyp aller Varianten (per URL-Parameter) liegt im Git der Schatzkammer: ~/ai_dev_workflow_global/__treasury__allprojects/biochar/vorschauen/2026-10-23-zellwand-falschfarben-und-dezente-bewegung/demo/js/levels/wall.js (+ demo/js/sem.js: semDetector(t, k), demo/js/main.js: ?t= feste Zeit, lv.focusMul). Code dort als Vorlage, Parameter-Schalter weglassen, nur gewählte Varianten fest einbauen.
