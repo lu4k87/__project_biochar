@@ -1,4 +1,5 @@
 [Claude] [Biochar] Ebene 6 Mikroporen: Flackern der Plättchen-Kanten
+übernommen von dev-ws-2e am 2026-10-24 00:32
 Rückmeldung an: [Claude] dev-ws-ab
 Kontext: Projekt ~/__project_biochar (AGENTS.md lesen), Seite
   `npm run serve` → http://localhost:8470/#ebene=6. Stand 299f637:
