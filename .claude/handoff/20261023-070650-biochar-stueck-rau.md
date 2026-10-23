@@ -1,4 +1,5 @@
 [Claude] [Biochar] Ebene 1: Holzkohle-Stück rau und abgebrochen
+übernommen von dev-ws-52 am 2026-10-23 07:18
 Rückmeldung an: [Claude] dev-ws-f3
 
 Kontext: Biochar-3D-Seite (~/__project_biochar, Stand 01ca6d2). Ebene 1 = Holzkohle-Stück, Code in web/js/levels/piece.js (560 Zeilen). Start: npm run serve → http://localhost:8470/#ebene=1 (Server des Users auf 8470 nicht anfassen, eigene Test-Instanz auf anderem Port).
