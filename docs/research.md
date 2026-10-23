@@ -19,6 +19,7 @@ Grundlage für Texte und Modelle der Seite. Zahlen mit Quelle; alles andere ist 
 | Holzkohle bleibt nicht-graphitierend | – | Franklin 1951 |
 | Redoxaktive Gruppen | Biochar nimmt Elektronen auf und gibt sie ab | Klüpfel et al. 2014 |
 | Kelvin-Gleichung (Wasser, 25 °C) | 2γVm/(RT) = 1,05 nm → 50 % rF ≈ 4 nm, 90 % ≈ 21 nm, 99 % ≈ 210 nm | Physikalische Chemie, eigene Rechnung |
+| Sorptions-Hysterese | Füllen mit zylindrischem, Entleeren mit halbkugeligem Meniskus → p_Entleeren = p_Füllen² | Cohan (1938), JACS 60, 433 |
 
 ## Richtwerte und Modellannahmen (nicht als Messwert lesen)
 - **Temperaturtabelle** in `web/js/science.js` (Ausbeute, C, H/C, O/C, BET, pH): typische Verläufe für Holz bei langsamer Pyrolyse, zusammengestellt aus Übersichtsliteratur (Lehmann & Joseph 2015; Xiao et al. 2016). Reale Kohlen streuen stark.
@@ -37,6 +38,12 @@ Grundlage für Texte und Modelle der Seite. Zahlen mit Quelle; alles andere ist 
 - **Ebene 6 (Mikroporen):** Schichten als Platten mit ≈ 0,14 nm Dicke (Atomdurchmesser), Randatome als Buckel im Abstand ≈ 0,25 nm, etwa jede zweite gekrümmte Schicht trägt in der Mitte einen Fünfring (Schale) bzw. Siebenring (Sattel) – Ursache der Krümmung im Harris-Modell; mehr Schichten im Volumen (Dichte ≈ +35 %).
 - **Ebene 7 (Atome):** Elektronenwolke als weiche Hülle mit dem van-der-Waals-Radius (C 1,70 Å, O 1,52 Å, H 1,20 Å, K 2,75 Å; Bondi 1964), Bindungen als Halbkegel in den Farben der Atome, π-Elektronen über/unter den Ringen nur angedeutet.
 - **Bildsprache (keine Wissenschaft):** Tiefenunschärfe, Bloom, Farbsaum, Grading und bewegtes Licht dienen der Wirkung. In den REM-Ebenen bleibt die Unschärfe gering, weil Rasterelektronenmikroskope eine große Schärfentiefe haben.
+
+### Luftfeuchte in Ebene 5 (Modell, 2026-10-23)
+- Gefüllt bis Ø (Regler): vorwärts Kelvin-Gleichung (Füllast), zurück erst auf dem Entleerungsast nach Cohan (p_Entl = p_Füll²); jede Pore für sich, keine Netzwerk- oder Porenblockade-Effekte (`wetDiameterNm` in `science.js`).
+- Skala unter dem Regler aus der Kelvin-Gleichung: Mikro (< 2 nm) bis ≈ 22 %, Meso (2–50 nm) bis ≈ 96 %, Makro darüber. Unter 2 nm gilt die Kelvin-Gleichung streng genommen nicht mehr (Mikroporen füllen per Volumenfüllung) – Darstellung.
+- Isotherme: gefüllter Anteil aus geschätzten Volumenanteilen des Porenmodells (Mikro 0,6–2 nm 30 %, kleine Poren 2,25–6,4 nm 25 %, große Poren 27–57 nm 45 %; `PORE_VOLUME`) – Form, kein Messwert.
+- Wasserfilm auf den Wänden wächst mit der Feuchte, Füllhöhe zwischen leer und voll (ab 0,8 × Ø) und Meniskus sind Darstellung. Messlinien: Ø der großen Poren aus dem Porenmodell (`sizeL`, 27–57 nm), im Bild als „Modell“ beschriftet.
 
 ## Weitere Vorlagen und Aufnahmen (zum Nachsehen, nicht ins Repo kopieren)
 - Prommer et al. 2014, Abb. 2: Porengrößenverteilung aus 7 715 vermessenen Poren, mit Größen von Bakterien, Pilzen, Protozoen, Nematoden – https://pmc.ncbi.nlm.nih.gov/articles/PMC3907405/

@@ -2,7 +2,7 @@
 // Läuft ohne Testframework (auch mit älterem Node): node tests/science.test.js
 
 import assert from 'assert';
-import { properties, fperm, kelvinDiameterNm, nanoStructure, pyroState, glowColor, DRAPER, tissueScale } from '../web/js/science.js';
+import { properties, fperm, kelvinDiameterNm, kelvinRh, desorbDiameterNm, wetDiameterNm, poreClass, filledShare, isotherm, nanoStructure, pyroState, glowColor, DRAPER, tissueScale } from '../web/js/science.js';
 import { powerCells, polygonArea } from '../web/js/voronoi.js';
 import { mulberry32 } from '../web/js/util.js';
 
@@ -35,6 +35,9 @@ test('Kelvin-Gleichung: gefüllte Porendurchmesser wie im Infotext', () => {
   assert.ok(Math.abs(kelvinDiameterNm(0.5) - 3.6) < 0.1);
   assert.ok(Math.abs(kelvinDiameterNm(0.9) - 20.5) < 0.2);
   assert.ok(Math.abs(kelvinDiameterNm(0.99) - 209.5) < 1);
+  // Umkehrung: Mikro bis ≈ 22 %, Meso bis ≈ 96 % (Skala unter dem Regler)
+  assert.ok(Math.abs(kelvinRh(2) - 0.223) < 0.002 && Math.abs(kelvinRh(50) - 0.958) < 0.002);
+  assert.ok(Math.abs(kelvinDiameterNm(kelvinRh(30)) - 30) < 1e-6);
 });
 
 test('Clustergröße wächst mit der Temperatur', () => {
@@ -100,3 +103,32 @@ test('Holz → Kohle je Ebene (Modell): Stärke, Tüpfelmembran, Fibrillen versc
 });
 
 process.exitCode = failed ? 1 : 0;
+
+test('Hysterese: Füllen nach Kelvin, Entleeren erst bei tieferer Feuchte (Cohan, Modell)', () => {
+  // Entleerungsast liegt bei gleicher Feuchte über dem Füllast: p_Entleeren = p_Füllen²
+  assert.ok(desorbDiameterNm(0.9) > kelvinDiameterNm(0.9));
+  assert.ok(Math.abs(desorbDiameterNm(0.81) - kelvinDiameterNm(0.9)) < 1e-9);
+  // vorwärts folgt der Füllast, zurück bleibt das Wasser stehen, bis der Entleerungsast erreicht ist
+  let d = 0;
+  for (const rh of [0.2, 0.5, 0.8, 0.95]) d = wetDiameterNm(d, rh);
+  assert.ok(Math.abs(d - kelvinDiameterNm(0.95)) < 1e-9);
+  const full = d;
+  d = wetDiameterNm(d, 0.93);
+  assert.equal(d, full);                                    // leichtes Zurückdrehen: Poren bleiben gefüllt
+  d = wetDiameterNm(d, 0.6);
+  assert.ok(Math.abs(d - desorbDiameterNm(0.6)) < 1e-9);    // tiefer: auf dem Entleerungsast
+  assert.ok(d > kelvinDiameterNm(0.6));
+  assert.equal(wetDiameterNm(d, 0), 0);                     // trocken
+});
+
+test('Porenklassen und Isotherme (Modell)', () => {
+  assert.deepEqual([0, 1.5, 10, 55].map(poreClass), ['', 'micro', 'meso', 'macro']);
+  assert.equal(filledShare(0), 0);
+  assert.ok(Math.abs(filledShare(100) - 1) < 1e-9);
+  const iso = isotherm(50);
+  for (let i = 1; i < iso.ads.length; i++) {
+    assert.ok(iso.ads[i][1] >= iso.ads[i - 1][1] - 1e-12);                  // monoton
+    assert.ok(iso.des[i][1] >= iso.ads[i][1] - 1e-12);                      // Entleerungsast nie unter dem Füllast
+  }
+  assert.ok(iso.ads[iso.ads.length - 1][1] > 0.99);
+});

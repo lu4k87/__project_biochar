@@ -1,6 +1,8 @@
 # Prüft die Pyrolyse-Übergänge je Ebene im Headless-Chrome per CDP (echte GPU, AGENTS.md §5): Ebenen 3–7 bei
 # T = 25/350/550/800 °C, hell + dunkel (1440 px), dazu die Info-Karte der Hotspots (Klick → Karte links vom Abzeichen)
-# bei 1440 px und 390 px. Ergebnis: Bildbogen `sheet.png`, Einzelbilder, Konsolenfehler als Liste.
+# bei 1440 px und 390 px. Ebene 5 zusätzlich: Regler Luftfeuchte 0/50/90/99 % und zurück auf 90 % (Hysterese), hell +
+# dunkel, 1440 + 390 px, Messlinien sichtbar, Puls des Abzeichens „Kapillarkondensation“ (reduced-motion: nur Farbe).
+# Ergebnis: Bildbogen `sheet.png` (+ `sheet-rh.png`), Einzelbilder, Konsolenfehler als Liste.
 # Aufruf: python3 tests/pyro_levels_check.py [ausgabe-ordner]  (eigene Instanz auf Port 8471, Server des Users bleibt)
 import base64, json, os, socket, subprocess, sys, tempfile, time, urllib.request
 import websocket   # websocket-client
@@ -37,7 +39,9 @@ try:
             if m.get('method') == 'Runtime.consoleAPICalled' and m['params']['type'] in ('error', 'warning'): errors.append((m['params']['type'], ' '.join(str(a.get('value', a.get('description', '')))[:200] for a in m['params']['args'])))
             if m.get('method') == 'Log.entryAdded' and m['params']['entry']['level'] in ('error',): errors.append(('log', m['params']['entry']['text'][:300]))
     def js(expr):
-        return call('Runtime.evaluate', {'expression': expr, 'returnByValue': True}).get('result', {}).get('value')
+        r = call('Runtime.evaluate', {'expression': expr, 'returnByValue': True})
+        if 'exceptionDetails' in r: errors.append(('js', str(r['exceptionDetails'].get('exception', {}).get('description', r['exceptionDetails'].get('text')))[:300]))
+        return r.get('result', {}).get('value')
     for m in ('Runtime.enable', 'Log.enable', 'Page.enable'): call(m)
     def pump(sec):   # Ereignisse einsammeln, während die Seite läuft
         t0 = time.time()
@@ -73,6 +77,41 @@ try:
         if not (st and st['ok']): errors.append(('card', f'{name}: {st}'))
         js("document.querySelector('.hsb--info:not(.is-off)').click()"); pump(0.5)   # zweiter Klick schließt
         if js("document.querySelector('.hs-card').classList.contains('is-open')"): errors.append(('card', f'{name}: zweiter Klick schließt nicht'))
+    # Ebene 5: Luftfeuchte-Regler, Messlinien, Hysterese, Puls
+    RH_STEPS = [0, 0.5, 0.9, 0.99, 0.9]
+    SET_RH = "(v => { const i = document.getElementById('in-rh'); i.value = v; i.dispatchEvent(new Event('input')); })(%s)"
+    RH_STATE = """(() => ({ wet: document.getElementById('out-wet').textContent, note: document.getElementById('rh-note').textContent,
+      ms: document.querySelectorAll('.ms-lab:not(.is-off)').length, labs: [...document.querySelectorAll('.ms-lab:not(.is-off)')].map(e => e.textContent),
+      pulse: (() => { const b = [...document.querySelectorAll('.hsb')].find(e => e.textContent.includes('Kapillar')); return b ? getComputedStyle(b).animationName : 'kein Abzeichen'; })() }))()"""
+    if 5 in LEVELS:
+        for w, h, scheme in [(1440, 900, 'dark'), (1440, 900, 'light'), (390, 844, 'dark'), (390, 844, 'light')]:
+            n0 = len(errors)
+            load(f'http://127.0.0.1:{PORT}/?T=550&q=2&run=rh{w}{scheme}#ebene=5', w, h, scheme)   # eigene URL: sonst nur Hash-Wechsel ohne Neuladen
+            res = []
+            for k, v in enumerate(RH_STEPS):
+                js(SET_RH % v); pump(0.25)
+                st = js(RH_STATE); pump(1.6)
+                shot(f'rh-{w}-{scheme}-{k}')
+                res.append(st)
+            if None in res: errors.append(('rh', f'{w} {scheme}: Zustand nicht lesbar')); continue
+            wet = [r['wet'] for r in res]
+            num = lambda r: float(r['wet'].replace('Ø', '').replace('nm', '').replace('.', '').replace(',', '.'))
+            hyst_ok = num(res[4]) > num(res[2]) and 'Hysterese' in res[4]['note']   # zurück auf 90 %: mehr gefüllt als vorwärts
+            ms_ok = w < 600 or max(r['ms'] for r in res) >= 2   # Kamerafahrt: je nach Pose blendet eine Linie aus
+            pulse_ok = res[3]['pulse'] == 'hsb-pulse' or w < 600   # 99 %: Makroporen füllen → Puls (mobil evtl. ohne Abzeichen)
+            print(f'Ebene 5 rF {w} {scheme}: gefüllt {wet} · Messlinien {max(r["ms"] for r in res)} {res[0]["labs"]} · Puls {res[3]["pulse"]} · '
+                  f'Hysterese {"✅" if hyst_ok else "❌"} · {len(errors) - n0} Konsolenfehler', flush=True)
+            if not (hyst_ok and ms_ok and pulse_ok): errors.append(('rh', f'{w} {scheme}: hyst {hyst_ok} ms {ms_ok} pulse {pulse_ok}'))
+            if w == 1440:   # Tafelausschnitt mit Skala, Anzeige und Isotherme (Hysterese-Zustand)
+                r = js("(() => { const e = document.querySelector('.rh'); e.scrollIntoView({block: 'center'}); const b = e.getBoundingClientRect(); return [b.left, b.top, b.width, b.height]; })()"); pump(0.5)
+                data = call('Page.captureScreenshot', {'format': 'png', 'clip': {'x': r[0], 'y': r[1], 'width': r[2], 'height': r[3], 'scale': 1}})['data']
+                open(os.path.join(OUT, f'rhpanel-{scheme}.png'), 'wb').write(base64.b64decode(data))
+        # reduzierte Bewegung: Puls nur als Farbwechsel
+        call('Emulation.setEmulatedMedia', {'features': [{'name': 'prefers-color-scheme', 'value': 'dark'}, {'name': 'prefers-reduced-motion', 'value': 'reduce'}]})
+        call('Page.navigate', {'url': f'http://127.0.0.1:{PORT}/?T=550&q=2#ebene=5'}); pump(6)
+        js(SET_RH % 0.99); pump(0.2); st = js(RH_STATE)
+        print(f'Ebene 5 reduced-motion: Puls {st["pulse"]}', flush=True)
+        if st['pulse'] != 'hsb-pulse-tint': errors.append(('rh', f'reduced-motion: {st["pulse"]}'))
     ws.close()
 finally:
     chrome.terminate(); chrome.wait()
@@ -95,6 +134,17 @@ for x, n in enumerate(['card-1440-dark', 'card-1440-light', 'card-390-dark']):
         im = Image.open(shots[n]); im.thumbnail((TW, THh)); sheet.paste(im, (40 + x * (TW + 10), 40 + y * (THh + 30)))
         d.text((40 + x * (TW + 10), 40 + y * (THh + 30) - 14), n, fill=(240, 240, 240))
 sheet.save(os.path.join(OUT, 'sheet.png'))
+rh = sorted(n for n in shots if n.startswith('rh-'))
+if rh:   # Luftfeuchte: Zeilen = Breite/Schema, Spalten = 0/50/90/99/zurück 90 %
+    cfg = sorted({n.rsplit('-', 1)[0] for n in rh})
+    sh = Image.new('RGB', (40 + 5 * (TW + 10), 40 + len(cfg) * (THh + 30)), (24, 24, 28)); d = ImageDraw.Draw(sh)
+    for x, lab in enumerate(['0 %', '50 %', '90 %', '99 %', 'zurück 90 %']): d.text((40 + x * (TW + 10), 12), lab, fill=(240, 240, 240))
+    for y, c in enumerate(cfg):
+        d.text((4, 40 + y * (THh + 30) + THh // 2), c.replace('rh-', '').replace('-', '\n'), fill=(240, 240, 240))
+        for x in range(5):
+            if f'{c}-{x}' in shots:
+                im = Image.open(shots[f'{c}-{x}']); im.thumbnail((TW, THh)); sh.paste(im, (40 + x * (TW + 10), 40 + y * (THh + 30)))
+    sh.save(os.path.join(OUT, 'sheet-rh.png'))
 print(f'\nBildbogen: {OUT}/sheet.png\nKonsolenfehler/-warnungen: {len(errors)}')
 for e in errors[:20]: print(' ', e)
 sys.exit(1 if errors else 0)
