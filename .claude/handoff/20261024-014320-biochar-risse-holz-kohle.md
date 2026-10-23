@@ -1,4 +1,5 @@
 [Claude] [Biochar] Risse/Kerben: Holz kaum, Kohle etwas mehr
+übernommen von dev-ws-cc am 2026-10-24 01:47
 Rückmeldung an: [Claude] dev-ws-2e
 Kontext: Projekt ~/__project_biochar (AGENTS.md lesen), Seite
   `npm run serve` → http://localhost:8470/ · Ebene direkt #ebene=n,
