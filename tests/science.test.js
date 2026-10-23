@@ -2,7 +2,7 @@
 // Läuft ohne Testframework (auch mit älterem Node): node tests/science.test.js
 
 import assert from 'assert';
-import { properties, fperm, kelvinDiameterNm, nanoStructure, pyroState, glowColor, DRAPER } from '../web/js/science.js';
+import { properties, fperm, kelvinDiameterNm, nanoStructure, pyroState, glowColor, DRAPER, tissueScale } from '../web/js/science.js';
 import { powerCells, polygonArea } from '../web/js/voronoi.js';
 import { mulberry32 } from '../web/js/util.js';
 
@@ -65,6 +65,16 @@ test('Pyrolyse-Zeitraffer: Rotglut erst ab dem Draper-Punkt, Phasen in Reihenfol
   assert.equal(pyroState(350).phase, 'Zellulose zerfällt');
   const [r, g, b] = glowColor(800);
   assert.ok(r > g && g > b);
+});
+
+test('Gewebe-Schwindung: Ausgangsbild bei 550 °C, kühler größer, quer stärker als längs, Wand dünner mit Masseverlust', () => {
+  const ref = tissueScale(550);
+  assert.ok(ref.xy === 1 && ref.z === 1 && ref.wall === 1);
+  for (let t = 25; t < 800; t += 25) {
+    const a = tissueScale(t), b = tissueScale(t + 25);
+    assert.ok(b.xy <= a.xy + 1e-9 && b.z <= a.z + 1e-9 && b.wall <= a.wall + 1e-9);
+  }
+  assert.ok(tissueScale(25).xy - 1 > tissueScale(25).z - 1);   // quer schwindet stärker als längs
 });
 
 test('Power-Diagramm zerlegt die Fläche lückenlos', () => {

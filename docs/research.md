@@ -46,3 +46,10 @@ Grundlage für Texte und Modelle der Seite. Zahlen mit Quelle; alles andere ist 
 - US-Patente „Biochars and biochar treatment processes“: REM-Bilder von Kiefer-, Birken- und Kokosschalen-Biochar, Übergang Makro → Meso → Mikro entlang einer Pore – https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/10252951
 - Keiluweit et al. 2010 (Volltext frei): https://escholarship.org/uc/item/177491q3
 - IPCC 2019 Refinement, Anhang 4 Biochar: https://www.ipcc-nggip.iges.or.jp/public/2019rf/pdf/4_Volume4/19R_V4_Ch02_Ap4_Biochar.pdf
+
+## Pyrolyse-Labor in den Ebenen (Modellannahmen, 2026-10-23)
+- **Gewebe/Zellen:** Schwindung relativ zum Ausgangsbild bei 550 °C aus `pyroState` (quer ≤ 28 %, längs ≤ 10 %, Modell); Wanddicke folgt dem Masseverlust, Anteil ≈ 12 % (Richtwert, `tissueScale` in `science.js`).
+- **Zellwand:** Mikrorisse schließen sich unter 350 °C ganz (ab 250 °C), Asche-Kristalle wachsen mit T (Modell).
+- **Nanoporen:** Wandstärke zwischen den kleinen Poren folgt der BET-Fläche (5 → 390 m²/g, Tabelle `science.js`): heißer = mehr offene Poren. Wasserfilm mit Kapillarwellen und Glitzerpunkten ist Darstellung, keine Messgröße.
+- **Mikroporen:** feste Stammliste der Stapel; Größe, Schichtzahl, d002 und Krümmung gleiten mit `nanoStructure(T)`. Aromatische Schichten entstehen zwischen 280 und 380 °C (Modell, vgl. Keiluweit et al. 2010: Umbau ab ≈ 300 °C). Austretende CO₂-/H₂O-Moleküle: ein Molekül je 12 °C Aufheizung (nur Darstellung).
+- **Atome:** Struktur in 25-°C-Stufen; Randgruppen nach fester Rangfolge, entfallende Gruppen verlassen den Cluster (Dehydratisierung/Decarboxylierung), neue Ringe wachsen ein. Summenformel und H/C zählen live.

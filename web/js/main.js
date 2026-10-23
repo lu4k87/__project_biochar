@@ -820,6 +820,7 @@ function frame(now) {
   last = now;
   state.time += dt;
   stepPyro(real);
+  hud.tickFacts(real);
   const { w, h } = viewSize();
   const lv = state.active;
   if (state.tr) stepTransition(real);
