@@ -2,7 +2,7 @@
 // Läuft ohne Testframework (auch mit älterem Node): node tests/science.test.js
 
 import assert from 'assert';
-import { properties, fperm, kelvinDiameterNm, nanoStructure } from '../web/js/science.js';
+import { properties, fperm, kelvinDiameterNm, nanoStructure, pyroState, glowColor, DRAPER } from '../web/js/science.js';
 import { powerCells, polygonArea } from '../web/js/voronoi.js';
 import { mulberry32 } from '../web/js/util.js';
 
@@ -41,6 +41,30 @@ test('Clustergröße wächst mit der Temperatur', () => {
   assert.equal(nanoStructure(350).rings, 3);
   assert.equal(nanoStructure(800).rings, 19);
   assert.ok(nanoStructure(600).rings > nanoStructure(450).rings);
+});
+
+test('Pyrolyse-Zeitraffer: Masse fällt stetig und trifft die Tabelle bei 350 °C', () => {
+  assert.ok(Math.abs(pyroState(350).mass - properties(350).yield) < 0.5);
+  assert.equal(pyroState(25).mass, 100);
+  for (let t = 25; t < 800; t += 25) assert.ok(pyroState(t + 25).mass <= pyroState(t).mass + 1e-9);
+});
+
+test('Pyrolyse-Zeitraffer: Zersetzungsbereiche nach Yang et al. (2007)', () => {
+  assert.equal(pyroState(210).hemi, 1);                 // Hemizellulose bis 220 °C unberührt
+  assert.ok(pyroState(315).hemi < 1e-9);                // bei 315 °C weitgehend zersetzt
+  assert.equal(pyroState(310).cell, 1);                 // Zellulose beginnt erst bei 315 °C
+  assert.ok(pyroState(400).cell < 1e-9);
+  assert.ok(pyroState(800).lignin > 0.4 && pyroState(800).lignin < 1);   // Lignin zersetzt sich breit, nie ganz
+});
+
+test('Pyrolyse-Zeitraffer: Rotglut erst ab dem Draper-Punkt, Phasen in Reihenfolge', () => {
+  assert.equal(pyroState(DRAPER - 1).glow, 0);
+  assert.ok(pyroState(650).glow > 0);
+  assert.equal(pyroState(150).phase, 'Trocknung');
+  assert.equal(pyroState(250).phase, 'Hemizellulose zerfällt');
+  assert.equal(pyroState(350).phase, 'Zellulose zerfällt');
+  const [r, g, b] = glowColor(800);
+  assert.ok(r > g && g > b);
 });
 
 test('Power-Diagramm zerlegt die Fläche lückenlos', () => {
