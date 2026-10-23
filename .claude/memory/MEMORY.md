@@ -1,2 +1,3 @@
 - [Ablage vorerst im dev_ws](storage-in-dev-ws.md) — Projekt liegt bis zum Umzug in ~/dev_ws/__project_biochar (eigenes Git, im dev_ws per .git/info/exclude ausgeblendet)
 - [Headless-Prüfung per CDP](headless-cdp-check.md) — Zeitpunkte, Hell/Dunkel, reduced-motion per CDP statt --timeout; `tests/pyro_overlay_check.py`
+- [Browser-Cache nach Änderung](browser-cache-after-change.md) — index.html + JS geändert → offener Browser mischt alt/neu, zeigt WebGL-Fehlseite; harter Reload Strg+Shift+R
