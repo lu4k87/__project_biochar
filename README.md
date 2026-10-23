@@ -30,7 +30,7 @@ Dann `http://localhost:8470/` öffnen. Für Ausstellungen: `http://localhost:847
 
 | Ebene | Größenordnung | Darstellung | Modell |
 |---|---|---|---|
-| 1 Stück | 4 cm | Makroaufnahme | verformter Quader, prozedurale Jahrringe, Strahlen, Gefäße, Schwundrisse |
+| 1 Stück | 4 cm | Makroaufnahme | verformter Quader, prozedurale Jahrringe, Strahlen, Gefäße; Schwundrisse öffnen sich erst mit der Schwindung (Holz glatt → Kohle gerissen) |
 | 2 Gewebe | 1 mm | REM (Sekundärelektronen) | Power-Voronoi: Fasern, Gefäße (Früh-/Spätholz), Holzstrahlen, Jahrringgrenze |
 | 3 Zellen | 200 µm | REM | dieselben Zellen als 3D-Bruchstück, Röhren längs aufgebrochen, Tüpfel |
 | 4 Zellwand | 25 µm | REM | Hoftüpfel, Mikrorisse, Bruchkante, Bakterien, Pilzhyphe, Asche |

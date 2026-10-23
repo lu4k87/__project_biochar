@@ -48,6 +48,7 @@ Grundlage für Texte und Modelle der Seite. Zahlen mit Quelle; alles andere ist 
 - IPCC 2019 Refinement, Anhang 4 Biochar: https://www.ipcc-nggip.iges.or.jp/public/2019rf/pdf/4_Volume4/19R_V4_Ch02_Ap4_Biochar.pdf
 
 ## Pyrolyse-Labor in den Ebenen (Modellannahmen, 2026-10-23)
+- **Stück:** Im Holzzustand ist die Oberfläche nur leicht rau (Faserriefen, Jahrring-Relief, Gefäße), ohne Schwundrisse. Risse, Blockversatz und Risslinien öffnen sich mit der Schwindung quer zur Faser (`pyroState.shrinkT`): sichtbar ab ≈ 260 °C, voll offen ab ≈ 580 °C; Risstiefe ≤ 1,1 mm, Öffnung ≤ 0,5 mm (Richtwerte, Modell). Physikalischer Hintergrund: Schwindung quer zur Faser ist deutlich größer als längs, die Spannung reißt das Gewebe in Würfelmuster auf – Größen sind nicht gemessen.
 - **Gewebe/Zellen:** Schwindung relativ zum Ausgangsbild bei 550 °C aus `pyroState` (quer ≤ 28 %, längs ≤ 10 %, Modell); Wanddicke folgt dem Masseverlust, Anteil ≈ 12 % (Richtwert, `tissueScale` in `science.js`).
 - **Zellwand:** Mikrorisse schließen sich unter 350 °C ganz (ab 250 °C), Asche-Kristalle wachsen mit T (Modell).
 - **Nanoporen:** Wandstärke zwischen den kleinen Poren folgt der BET-Fläche (5 → 390 m²/g, Tabelle `science.js`): heißer = mehr offene Poren. Wasserfilm mit Kapillarwellen und Glitzerpunkten ist Darstellung, keine Messgröße.
