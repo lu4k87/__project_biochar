@@ -86,4 +86,17 @@ test('Power-Diagramm zerlegt die Fläche lückenlos', () => {
   assert.ok(Math.abs(total - 8000) < 1e-6 * 8000);
 });
 
+test('Holz → Kohle je Ebene (Modell): Stärke, Tüpfelmembran, Fibrillen verschwinden – Schichten, Poren entstehen', () => {
+  const w = pyroState(25), m = pyroState(330), c = pyroState(450);
+  for (const k of ['starch', 'membrane', 'fibril', 'matrix']) assert.equal(w[k], 1, `${k} im Holz`);
+  for (const k of ['sheets', 'open', 'glassy']) assert.equal(w[k], 0, `${k} im Holz`);
+  assert.equal(m.starch, 0);
+  for (const k of ['fibril', 'membrane', 'matrix']) assert.equal(c[k], 0, `${k} in der Kohle`);
+  for (const k of ['sheets', 'open', 'glassy']) assert.equal(c[k], 1, `${k} in der Kohle`);
+  for (let t = 25; t < 800; t += 25) {
+    const a = pyroState(t), b = pyroState(t + 25);
+    assert.ok(b.sheets >= a.sheets && b.open >= a.open && b.fibril <= a.fibril && b.starch <= a.starch && b.membrane <= a.membrane, `monoton bei ${t} °C`);
+  }
+});
+
 process.exitCode = failed ? 1 : 0;
