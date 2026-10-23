@@ -1,4 +1,5 @@
 [Claude] [Biochar] Pyrolyse-Einblendungen in der 3D-Szene
+übernommen von dev-ws-e2 am 2026-10-23 21:39
 Rückmeldung an: [Claude] dev-ws-c8
 
 Kontext: Biochar-3D-Seite (~/__project_biochar, Stand 10ade39). Pyrolyse-Labor von dev-ws-99 (Commit 49fa8ca): Regler „Zieltemperatur“ und Knopf „Pyrolyse abspielen“ in der Infotafel (web/js/hud.js, Block .pyro-live zeigt gezeigte Temperatur, Phase wie „Aromatisierung · Rotglut“ und Gase wie „Gase: H₂, CH₄ (wenig)“ aus web/js/science.js pyroState/labProps; hud.setLive() aktualisiert ihn). web/js/main.js stepPyro() treibt die gezeigte Temperatur (state.pyro.shown) und ruft hud.setLive(shown, playing, done). dev-ws-c8 hat in 10ade39 den Ebenenübergang (Lichtschleier statt Teilchen) und den Qualitäts-Regler (web/js/quality.js) gebaut. Start: npm run serve → http://localhost:8470/ (Server des Users auf 8470 nicht anfassen, eigene Test-Instanz auf anderem Port; ?play&playsec=8 startet den Zeitraffer kurz).
