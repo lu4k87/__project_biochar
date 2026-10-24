@@ -2,7 +2,7 @@
 // Läuft ohne Testframework (auch mit älterem Node): node tests/science.test.js
 
 import assert from 'assert';
-import { properties, fperm, kelvinDiameterNm, kelvinRh, desorbDiameterNm, wetDiameterNm, poreClass, filledShare, isotherm, nanoStructure, pyroState, glowColor, DRAPER, tissueScale } from '../web/js/science.js';
+import { properties, fperm, kelvinDiameterNm, fillDiameterNm, kelvinRh, desorbDiameterNm, wetDiameterNm, poreClass, filledShare, isotherm, nanoStructure, pyroState, glowColor, DRAPER, tissueScale } from '../web/js/science.js';
 import { powerCells, polygonArea } from '../web/js/voronoi.js';
 import { mulberry32 } from '../web/js/util.js';
 
@@ -30,14 +30,21 @@ test('CO2-Äquivalent = C × Fperm × 44/12', () => {
   assert.ok(Math.abs(p.co2 - 0.9 * 0.89 * 44 / 12) < 1e-9);
 });
 
-test('Kelvin-Gleichung: gefüllte Porendurchmesser wie im Infotext', () => {
-  assert.equal(kelvinDiameterNm(0), 0);
+test('Kelvin-Gleichung: Füllast (zylindrischer Meniskus) wie im Infotext', () => {
+  assert.equal(fillDiameterNm(0), 0);
+  assert.ok(Math.abs(fillDiameterNm(0.5) - 2.1) < 0.05);
+  assert.ok(Math.abs(fillDiameterNm(0.9) - 10.6) < 0.1);
+  assert.ok(Math.abs(fillDiameterNm(0.99) - 105) < 0.5);
+  // halbkugeliger Meniskus (zwei Krümmungen): doppelter Kelvin-Radius
   assert.ok(Math.abs(kelvinDiameterNm(0.5) - 3.6) < 0.1);
   assert.ok(Math.abs(kelvinDiameterNm(0.9) - 20.5) < 0.2);
-  assert.ok(Math.abs(kelvinDiameterNm(0.99) - 209.5) < 1);
-  // Umkehrung: Mikro bis ≈ 22 %, Meso bis ≈ 96 % (Skala unter dem Regler)
-  assert.ok(Math.abs(kelvinRh(2) - 0.223) < 0.002 && Math.abs(kelvinRh(50) - 0.958) < 0.002);
-  assert.ok(Math.abs(kelvinDiameterNm(kelvinRh(30)) - 30) < 1e-6);
+  // Umkehrung: Mikro bis ≈ 47 %, Meso bis ≈ 98 % (Skala unter dem Regler)
+  assert.ok(Math.abs(kelvinRh(2) - 0.472) < 0.002 && Math.abs(kelvinRh(50) - 0.979) < 0.002);
+  assert.ok(Math.abs(fillDiameterNm(kelvinRh(30)) - 30) < 1e-6);
+  // Schlitze 2–3,2 nm füllen wie Zylinder gleicher Weite: ≈ 45–65 % (Infotext) – gleiche Feuchte wie die frühere Regel
+  // „halbkugeliger Meniskus, Ø 2w − 0,6 nm“
+  assert.ok(kelvinRh(2) > 0.45 && kelvinRh(3.2) < 0.68);
+  for (const w of [2, 3.2]) assert.ok(Math.abs(kelvinRh(w) - Math.exp(-2.1 / (2 * w - 1.2))) < 1e-9);
 });
 
 test('Clustergröße wächst mit der Temperatur', () => {
@@ -111,19 +118,20 @@ test('Holz → Kohle je Ebene (Modell): Stärke, Tüpfelmembran, Fibrillen versc
 process.exitCode = failed ? 1 : 0;
 
 test('Hysterese: Füllen nach Kelvin, Entleeren erst bei tieferer Feuchte (Cohan, Modell)', () => {
-  // Entleerungsast liegt bei gleicher Feuchte über dem Füllast: p_Entleeren = p_Füllen²
-  assert.ok(desorbDiameterNm(0.9) > kelvinDiameterNm(0.9));
-  assert.ok(Math.abs(desorbDiameterNm(0.81) - kelvinDiameterNm(0.9)) < 1e-9);
+  // Entleerungsast = halbkugeliger Meniskus, liegt bei gleicher Feuchte über dem Füllast: p_Entleeren = p_Füllen²
+  assert.equal(desorbDiameterNm(0.9), kelvinDiameterNm(0.9));
+  assert.ok(desorbDiameterNm(0.9) > fillDiameterNm(0.9));
+  assert.ok(Math.abs(desorbDiameterNm(0.81) - fillDiameterNm(0.9)) < 1e-9);
   // vorwärts folgt der Füllast, zurück bleibt das Wasser stehen, bis der Entleerungsast erreicht ist
   let d = 0;
   for (const rh of [0.2, 0.5, 0.8, 0.95]) d = wetDiameterNm(d, rh);
-  assert.ok(Math.abs(d - kelvinDiameterNm(0.95)) < 1e-9);
+  assert.ok(Math.abs(d - fillDiameterNm(0.95)) < 1e-9);
   const full = d;
   d = wetDiameterNm(d, 0.93);
   assert.equal(d, full);                                    // leichtes Zurückdrehen: Poren bleiben gefüllt
   d = wetDiameterNm(d, 0.6);
   assert.ok(Math.abs(d - desorbDiameterNm(0.6)) < 1e-9);    // tiefer: auf dem Entleerungsast
-  assert.ok(d > kelvinDiameterNm(0.6));
+  assert.ok(d > fillDiameterNm(0.6));
   assert.equal(wetDiameterNm(d, 0), 0);                     // trocken
 });
 
