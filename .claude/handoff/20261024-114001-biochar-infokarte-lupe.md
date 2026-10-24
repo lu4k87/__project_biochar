@@ -1,4 +1,5 @@
 [Claude] [Biochar] Infokarte: Live-Lupe des 3D-Objekts
+übernommen von dev-ws-83 am 2026-10-24 11:40
 Rückmeldung an: dev-ws-ac
 Kontext: Vorschau entschieden (Schatzkammer biochar/vorschauen/
   2026-10-24-infokarte-mit-3d-objekt-neben-dem-text, Commit a8bb155):
