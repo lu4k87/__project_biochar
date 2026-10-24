@@ -93,6 +93,16 @@ test('Gewebe-Schwindung: Ausgangsbild bei 550 °C, kühler größer, quer stärk
   assert.ok(tissueScale(25).xy - 1 > tissueScale(25).z - 1);   // quer schwindet stärker als längs
 });
 
+test('Schwundrisse: im Holz zu, breiter Strahl reißt zuerst, Jahrringgrenze zuletzt, bei 800 °C alle offen', () => {
+  const wood = tissueScale(25), hot = tissueScale(800);
+  assert.ok(wood.crack === 0 && wood.crackRay === 0 && wood.crackRing === 0);
+  assert.ok(hot.crack === 1 && hot.crackRay === 1 && hot.crackRing === 1);
+  for (let t = 300; t < 800; t += 10) {
+    const k = tissueScale(t);
+    assert.ok(k.crack >= k.crackRay && k.crackRay >= k.crackRing);
+  }
+});
+
 test('Power-Diagramm zerlegt die Fläche lückenlos', () => {
   const rand = mulberry32(1);
   const bounds = { x0: 0, y0: 0, x1: 100, y1: 80 };
