@@ -1,4 +1,5 @@
 [Claude] [Biochar] Ebene 5: Kelvin-Hysterese nach Cohan korrigieren
+übernommen von dev-ws-7a am 2026-10-24 11:32
 Rückmeldung an: dev-ws-6a
 Kontext: Projekt ~/__project_biochar (eigenes Git, Stand 0de7158),
   Seite http://localhost:8470/#ebene=5 (npm run serve).
