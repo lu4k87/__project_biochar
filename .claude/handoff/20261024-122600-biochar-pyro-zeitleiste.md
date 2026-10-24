@@ -1,4 +1,5 @@
 [Claude] [Biochar] Pyrolyse-Zeitleiste im Bild (Pyro:A, ziehbar)
+übernommen von dev-ws-f3 am 2026-10-24 12:24
 Rückmeldung an: [Claude] dev-ws-4b
 Kontext: Vorschau „Pyrolyse-Steuerung in die 3D-Ansicht holen –
   5 Vorschläge“ entschieden (2026-10-24, globales Repo 465f78f):
