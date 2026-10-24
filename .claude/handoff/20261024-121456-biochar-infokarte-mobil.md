@@ -1,4 +1,5 @@
 [Claude] [Biochar] Info-Karte mobil: Lage im freien Bereich (Vorschau)
+übernommen von dev-ws-08 am 2026-10-24 12:17
 Rückmeldung an: dev-ws-13
 Kontext: Desktop ist fertig (Commit d4b7bb1): placeCard hält die Karte
   ganz im freien Bereich (links, rechts, darunter/darüber), max-height
