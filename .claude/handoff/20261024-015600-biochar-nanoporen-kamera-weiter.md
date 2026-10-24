@@ -1,4 +1,5 @@
 [Claude] [Biochar] Ebene 5 Nanoporen: Kamera weiter weg
+übernommen von dev-ws-bb am 2026-10-24 02:12
 Rückmeldung an: [Claude] dev-ws-cc
 Kontext: Projekt ~/__project_biochar (AGENTS.md lesen), Seite
   `npm run serve` → http://localhost:8470/ · Ebene direkt #ebene=5
