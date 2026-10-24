@@ -21,8 +21,10 @@ Dann `http://localhost:8470/` öffnen. Für Ausstellungen: `http://localhost:847
 | Zoom-Schiene links: Hex-Marke oder Tasten `1`–`7` | direkt zu einer Ebene |
 | Zoom-Schiene: Knopf ziehen | Bildbreite stufenlos (log-Skala 20 cm → 0,5 nm); über den Anschlag der Ebene hinaus losgelassen → tiefer bzw. zurück |
 | `Esc` / `Bild ↑` · `Bild ↓` | Ebene zurück · tiefer |
-| Regler „Zieltemperatur“ (25–800 °C) | Phasenleiste darunter zeigt die Phase des Werts und die Grenze Holz \| Pflanzenkohle ab 350 °C; alle Ebenen gleiten zur neuen Temperatur; Kennwerte (IPCC, EBC), Laborwerte und Nano-Struktur ändern sich |
-| Knopf „Pyrolyse abspielen“ | Zeitraffer von Raumtemperatur bis zur Zieltemperatur (≈ 18 s) mit Phasen von „Aufheizen“ bis „Aromatisierung · Rotglut“; solange die Temperatur gleitet, zeigt eine Einblendung oben in der 3D-Ansicht Temperatur, Phase und Gase |
+| Zeitleiste unten im Bild: runder Knopf ▶ / ■ | Pyrolyse abspielen: Zeitraffer von Raumtemperatur bis zur Zieltemperatur (≈ 18 s) mit Phasen von „Aufheizen“ bis „Aromatisierung · Rotglut“; die Kopfzeile zeigt Temperatur, Phase und Gase; nach einem Kapitel-Sprung spielt er ab dort weiter |
+| Zeitleiste: Dreieck ziehen, auf die Spur klicken oder `←` `→` | Zieltemperatur 25–800 °C; alle Ebenen gleiten zur neuen Temperatur; Kennwerte (IPCC, EBC), Laborwerte und Nano-Struktur ändern sich; Strich auf der Spur = Grenze Holz \| Pflanzenkohle ab 350 °C |
+| Zeitleiste: Kapitel-Name (Aufheizen … Aromatisierung) | springt an den Beginn dieser Phase |
+| Zeitleiste: Griff ⠿ ziehen oder Pfeiltasten | Leiste innerhalb der 3D-Ansicht verschieben (bleibt gespeichert); Doppelklick, ⟲ oder `Pos1` = zurück an den Standardplatz |
 | Regler „Luftfeuchte“ (Ebene 5) | Poren füllen sich nach der Kelvin-Gleichung mit Wasser |
 | Regler „Qualität“ (oben rechts) | Darstellung in drei Stufen Leicht · Mittel · Fein: Auflösung, Kantenglättung, Tiefenunschärfe, Bloom, Schatten, Detailgrad der Ebenen – für flüssige Bilder auch auf schwächeren Rechnern; ohne eigene Wahl misst die Seite kurz die Bildrate und schaltet bei Bedarf herunter („auto“) |
 

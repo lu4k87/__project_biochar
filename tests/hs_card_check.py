@@ -41,9 +41,9 @@ try:
     MEASURE = """(() => { const r = (el) => { if (!el) return null; const b = el.getBoundingClientRect(), cs = getComputedStyle(el);
         if (!b.width || !b.height || cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity < 0.05) return null;
         return [b.left, b.top, b.right, b.bottom].map(Math.round); };
-      const q = (s) => document.querySelector(s), ps = document.getElementById('pyro-stage');
+      const q = (s) => document.querySelector(s);
       const ui = { sem: r(q('.sem-bar')), nav: r(q('.nav-buttons')), hint: r(q('.center-hint')), panel: r(q('#panel')), brand: r(q('.brand')),
-        actions: r(q('.top-actions')), ladder: r(q('.ladder')), pyro: ps.classList.contains('is-on') ? r(ps) : null };
+        actions: r(q('.top-actions')), ladder: r(q('.ladder')), timeline: r(q('#pyro-tl')) };
       [...document.querySelectorAll('.hsb:not(.is-off):not(.is-active)')].forEach((b, i) => ui['hsb' + i] = r(b));
       const card = q('.hs-card');
       return { card: card.classList.contains('is-away') ? null : r(card), ui, W: innerWidth, H: innerHeight }; })()"""

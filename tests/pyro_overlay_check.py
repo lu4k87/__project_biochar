@@ -1,6 +1,7 @@
-# Prüft die Pyrolyse-Einblendung in der 3D-Ansicht im Headless-Chrome per CDP (echte GPU, AGENTS.md §5):
-# Zeitpunkte gezielt statt --timeout-Zufall – Einblendung an/aus (Zeitraffer + Reglerwechsel), erster Text sofort,
-# Hell/Dunkel/reduced-motion emuliert, keine Überlappung mit Abzeichen, Messleiste, Tafel, keine Konsolenfehler.
+# Prüft die Pyrolyse-Zeitleiste in der 3D-Ansicht im Headless-Chrome per CDP (echte GPU, AGENTS.md §5):
+# Zeitpunkte gezielt statt --timeout-Zufall – Zeitraffer läuft und endet am Ziel, Kopfzeile + aktives Kapitel folgen,
+# Hell/Dunkel/390 px/reduced-motion emuliert, keine Überlappung mit Abzeichen, Info-Karte, Leisten, Tafel; dazu
+# Ziel ziehen, Kapitel-Sprung, Weiterspielen ab dem Ist-Punkt, Verschieben (Maus, Taste, gespeichert, ⟲), Konsole leer.
 # Aufruf: python3 tests/pyro_overlay_check.py [ausgabe-ordner]  (eigene Instanz auf Port 8471, Server des Users bleibt)
 import base64, json, os, socket, subprocess, sys, tempfile, time, urllib.request
 import websocket   # websocket-client
@@ -33,21 +34,33 @@ try:
     def js(expr):
         return call('Runtime.evaluate', {'expression': expr, 'returnByValue': True}).get('result', {}).get('value')
     for m in ('Runtime.enable', 'Log.enable', 'Page.enable'): call(m)
-    STATE = """(() => { const ps = document.getElementById('pyro-stage'); if (!ps || !document.getElementById('ps-T')) return null;
-      const r = (el) => { const b = el.getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom]; };
-      return { ready: document.body.classList.contains('is-ready'), on: ps.classList.contains('is-on'), op: +getComputedStyle(ps).opacity,
-        T: document.getElementById('ps-T').textContent, phase: document.getElementById('ps-phase').textContent, gas: document.getElementById('ps-gas').textContent,
-        ps: r(ps), badges: [...document.querySelectorAll('.hsb:not(.is-off)')].map(r), bar: r(document.querySelector('.sem-bar')), panel: r(document.getElementById('panel')),
-        playing: document.getElementById('btn-play') ? document.getElementById('btn-play').getAttribute('aria-pressed') : null }; })()"""
+    STATE = """(() => { const tl = document.getElementById('pyro-tl'); if (!tl || !document.getElementById('tl-T')) return null;
+      const r = (el) => { if (!el) return null; const b = el.getBoundingClientRect(), cs = getComputedStyle(el);
+        return b.width && b.height && cs.display !== 'none' && cs.visibility !== 'hidden' ? [b.left, b.top, b.right, b.bottom] : null; };
+      const q = (s) => document.querySelector(s), card = q('.hs-card'), on = q('.tl-chapters .is-on');
+      return { ready: document.body.classList.contains('is-ready'), playing: q('#btn-play').getAttribute('aria-pressed'),
+        T: q('#tl-T').textContent, goal: q('#tl-goal-T').textContent, phase: q('#tl-phase').textContent, chapter: on ? on.textContent : '',
+        tl: r(tl), box: r(q('.stage-hud')), shift: tl.style.translate, moved: tl.classList.contains('is-moved'), saved: localStorage.getItem('biochar.timeline'),
+        ui: [...document.querySelectorAll('.hsb:not(.is-off)')].map(r).concat([r(q('.sem-bar')), r(q('.nav-buttons')), r(q('#panel')), r(q('.ladder')), r(q('.topbar')),
+          card && card.classList.contains('is-open') && !card.classList.contains('is-away') ? r(card) : null]).filter(Boolean) }; })()"""
+    deg = lambda s: int(s.split()[0].replace('.', '')) if s and s.split()[0].replace('.', '').isdigit() else -1
     def overlap(a, b): return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
-    gaps = []   # Diagnose: längste Pause zwischen zwei Abfragen (blockierter Haupt-Thread)
+    def inside(a, b): return a[0] >= b[0] - 0.5 and a[1] >= b[1] - 0.5 and a[2] <= b[2] + 0.5 and a[3] <= b[3] + 0.5
     def wait(cond, limit):
-        t0 = time.time(); tp = t0
+        t0 = time.time()
         while time.time() - t0 < limit:
-            st = js(STATE); gaps.append(time.time() - tp); tp = time.time()
+            st = js(STATE)
             if st and cond(st): return st, round(time.time() - t0, 1)
             time.sleep(0.1)
         return st, None
+    def layout(st, name):   # Zero Overlap: Leiste ganz in der Bühne, nichts darunter
+        ov = sum(overlap(st['tl'], b) for b in st['ui'])
+        ok = not ov and inside(st['tl'], st['box'])
+        if not ok: bad.append(f'{name}: Überlappungen {ov}, in der Bühne {inside(st["tl"], st["box"])}')
+        return f'Überlappungen {ov} · in der Bühne {inside(st["tl"], st["box"])}'
+    def click(sel): js(f"document.querySelector({json.dumps(sel)}).click()")
+    def center(sel): return js(f"(() => {{ const b = document.querySelector({json.dumps(sel)}).getBoundingClientRect(); return [b.left + b.width / 2, b.top + b.height / 2]; }})()")
+    def mouse(kind, x, y): call('Input.dispatchMouseEvent', {'type': kind, 'x': x, 'y': y, 'button': 'left', 'buttons': 1 if kind != 'mouseReleased' else 0, 'clickCount': 1})
     bad = []
     for name, scheme, w, h, reduced in [('dark1440', 'dark', 1440, 900, False), ('light1440', 'light', 1440, 900, False),
                                         ('dark390', 'dark', 390, 844, False), ('reduced1440', 'dark', 1440, 900, True)]:
@@ -55,27 +68,51 @@ try:
         feats = [{'name': 'prefers-color-scheme', 'value': scheme}] + ([{'name': 'prefers-reduced-motion', 'value': 'reduce'}] if reduced else [])
         call('Emulation.setEmulatedMedia', {'features': feats})
         call('Page.navigate', {'url': URL})
+        js("localStorage.removeItem('biochar.timeline')")
         st, ready = wait(lambda s: s['ready'], 30)
-        st, on = wait(lambda s: s['on'], 10)
-        first = st['phase'] if st else ''
-        gaps.clear()
-        st, mid = wait(lambda s: s['on'] and s['T'] and int(s['T'].split()[0].replace('.', '')) >= 380 and s['op'] > 0.99, 15)
-        gap = round(max(gaps), 2) if gaps else None
-        mid_T, mid_phase = (st['T'], st['phase']) if st else ('', '')   # sofort festhalten, st wandert weiter
-        ov = sum(overlap(st['ps'], b) for b in st['badges']) + overlap(st['ps'], st['bar']) + overlap(st['ps'], st['panel'])
-        inwin = st['ps'][0] >= 0 and st['ps'][2] <= w
+        st, on = wait(lambda s: s['playing'] == 'true', 10)
+        st, mid = wait(lambda s: s['playing'] == 'true' and deg(s['T']) >= 380, 15)
+        mid_T, mid_phase, mid_ch = (st['T'], st['phase'], st['chapter']) if st else ('', '', '')
+        line = f"{name}: bereit {ready}s · spielt {on}s · mitten {mid_T} {mid_phase!r} Kapitel {mid_ch!r} · {layout(st, name)}"
         open(f'{OUT}/{name}.png', 'wb').write(base64.b64decode(call('Page.captureScreenshot', {'format': 'png'})['data']))
-        wait(lambda s: s['playing'] == 'false', 15)
-        st, off = wait(lambda s: not s['on'], 6)
-        st, faded = wait(lambda s: s['op'] < 0.01, 3)
-        line = f"{name}: bereit {ready}s · an {on}s · erster Text {first!r} · mitten {mid_T} {mid_phase!r} · aus {off}s · verblasst {faded}s · Überlappungen {ov} · im Fenster {inwin} · längste Abfragepause {gap}s"
-        if name == 'dark1440':   # Reglerwechsel: erscheint beim Gleiten, verschwindet danach wieder
+        st, end = wait(lambda s: s['playing'] == 'false', 15)
+        line += f" · Ende {end}s bei {st['T']} (Ziel {st['goal']})"
+        if None in (ready, on, mid, end) or not mid_phase or st['T'] != st['goal'] or (w > 860 and not mid_ch): bad.append(name)
+        if name == 'dark1440':
+            # Ziel setzen wie per Ziehen/Tastatur (Range-Feld), die gezeigte Temperatur gleitet hin
             js("(() => { const i = document.getElementById('in-temp'); i.value = 450; i.dispatchEvent(new Event('input', {bubbles: true})); })()")
-            st, g_on = wait(lambda s: s['on'], 3); st, g_off = wait(lambda s: not s['on'], 6)
-            line += f" · Regler: an {g_on}s aus {g_off}s {st['T']}"
-            if g_on is None or g_off is None: bad.append(f'{name}: Reglerwechsel')
-        print(line)
-        if None in (ready, on, mid, off, faded) or ov or not inwin or not first: bad.append(name)
+            st, g = wait(lambda s: s['goal'] == '450 °C' and s['T'] == '450 °C', 4)
+            line += f"\n  Ziel 450: {g}s"
+            # Kapitel „Trocknung“: Sprung an den Phasenbeginn (100 °C), bleibt stehen
+            click('.tl-chapters button[data-k="1"]')
+            st, k = wait(lambda s: s['T'] == '100 °C' and s['playing'] == 'false', 4)
+            line += f" · Kapitel Trocknung → {st['T']} {k}s"
+            click('#btn-play')   # weiter ab dem Ist-Punkt, nicht ab 25 °C
+            st, r = wait(lambda s: s['playing'] == 'true', 3)
+            first = deg(st['T'])
+            click('#btn-play')
+            st, s_ = wait(lambda s: s['playing'] == 'false', 3)
+            line += f" · ▶ ab {first} °C, ■ {s_}s"
+            if None in (g, k, r, s_) or first < 100: bad.append(f'{name}: Ziel/Kapitel/Weiterspielen')
+            # Verschieben: Griff mit der Maus 300 px nach oben ziehen → gespeichert, nach Neuladen gleich, ⟲ zurück
+            x, y = center('.tl-grip'); mouse('mousePressed', x, y)
+            for i in range(1, 7): mouse('mouseMoved', x - 20 * i, y - 50 * i)
+            mouse('mouseReleased', x - 120, y - 300)
+            time.sleep(0.6)
+            st = js(STATE); moved = st['shift']
+            line += f"\n  gezogen: {moved} gespeichert {st['saved']} · {layout(st, name + ' gezogen')}"
+            call('Page.reload'); st, _ = wait(lambda s: s['ready'], 30); time.sleep(0.8); st = js(STATE)
+            line += f" · nach Neuladen {st['shift']}"
+            js("document.querySelector('.tl-grip').focus()")
+            for kind in ('rawKeyDown', 'keyUp'): call('Input.dispatchKeyEvent', {'type': kind, 'key': 'ArrowUp', 'code': 'ArrowUp', 'windowsVirtualKeyCode': 38})
+            st2 = js(STATE)
+            line += f" · Taste ↑ {st2['shift']}"
+            click('.tl-reset'); st3 = js(STATE)
+            line += f" · ⟲ {st3['shift']!r} verschoben {st3['moved']}"
+            dy = lambda s: float(s.split()[1].replace('px', '')) if s and len(s.split()) > 1 else 0.0
+            if not moved or st['shift'] != moved or dy(st2['shift']) != dy(moved) - 20 or st3['moved'] or st3['shift'] not in ('0px', '0px 0px'):
+                bad.append(f'{name}: Verschieben')
+        print(line, flush=True)
     errs = [e for e in events if e['method'] == 'Runtime.exceptionThrown' or (e['method'] == 'Runtime.consoleAPICalled' and e['params']['type'] in ('error', 'warning'))
             or (e['method'] == 'Log.entryAdded' and e['params']['entry']['level'] in ('error', 'warning') and 'favicon' not in e['params']['entry'].get('url', ''))]
     for e in errs[:5]: print('Konsole:', json.dumps(e['params'], ensure_ascii=False)[:200])
@@ -84,4 +121,5 @@ finally:
     chrome.terminate(); chrome.wait()
     if server: server.terminate(); server.wait()
 print(f'Screenshots: {OUT}')
+for b in bad: print('FEHLER:', b)
 sys.exit(1 if bad or errs else 0)
