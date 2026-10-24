@@ -1,4 +1,5 @@
 [Claude] [Biochar] Ebene 5 Nanoporen: realistischer + detailreicher
+übernommen von dev-ws-6a am 2026-10-24 11:01
 Rückmeldung an: dev-ws-ae
 Kontext: Projekt ~/__project_biochar (eigenes Git, Stand ac0d2b3),
   Seite http://localhost:8470/#ebene=5 (npm run serve).
