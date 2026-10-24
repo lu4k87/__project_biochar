@@ -15,7 +15,7 @@ Dann `http://localhost:8470/` öffnen. Für Ausstellungen: `http://localhost:847
 | Aktion | Wirkung |
 |---|---|
 | Ziehen / Scrollen | Kamera drehen / zoomen |
-| oranges Hex-Abzeichen oder sein Punkt | eine Ebene tiefer fliegen (durchgehender Flug ≈ 5 s, die nächste Ebene bildet sich ohne sichtbare Überblendung aus dem Zoom) |
+| oranges Hex-Abzeichen oder sein Punkt | eine Ebene tiefer fliegen (durchgehender Flug ≈ 3,5 s, die nächste Ebene bildet sich ohne sichtbare Überblendung aus dem Zoom) |
 | weißes Hex-Abzeichen | Kamera schwenkt hin, Erklärung in der Infotafel und in der Info-Karte neben dem Abzeichen (nummerierter Entdeckungs-Pfad `01` → `02` … mit gewinkelten 45°-Leitlinien); links neben dem Text eine runde Lupe mit Fadenkreuz-Ring: Live-Ausschnitt der Szene um den Punkt, schwenkt langsam ±25° (bei reduzierter Bewegung still, Stufe „Leicht“: Standbild) |
 | am Zoom-Anschlag weiterscrollen | Ebene tiefer bzw. zurück |
 | Zoom-Schiene links: Hex-Marke oder Tasten `1`–`7` | direkt zu einer Ebene (gegliedert in `MAKRO` · `REM` · `NANO` mit Alltags-Größenvergleich je aktiver Ebene, z. B. `≈ Walnuss`, `≈ 2× Haar`, `≈ Glucose-Ring`) |
