@@ -16,29 +16,30 @@ Dann `http://localhost:8470/` öffnen. Für Ausstellungen: `http://localhost:847
 |---|---|
 | Ziehen / Scrollen | Kamera drehen / zoomen |
 | oranges Hex-Abzeichen oder sein Punkt | eine Ebene tiefer fliegen (durchgehender Flug ≈ 5 s, die nächste Ebene bildet sich ohne sichtbare Überblendung aus dem Zoom) |
-| weißes Hex-Abzeichen | Kamera schwenkt hin, Erklärung in der Infotafel und in der Info-Karte neben dem Abzeichen; links neben dem Text eine runde Lupe: Live-Ausschnitt der Szene um den Punkt, schwenkt langsam ±25° (bei reduzierter Bewegung still, Stufe „Leicht“: Standbild) |
+| weißes Hex-Abzeichen | Kamera schwenkt hin, Erklärung in der Infotafel und in der Info-Karte neben dem Abzeichen (nummerierter Entdeckungs-Pfad `01` → `02` … mit gewinkelten 45°-Leitlinien); links neben dem Text eine runde Lupe mit Fadenkreuz-Ring: Live-Ausschnitt der Szene um den Punkt, schwenkt langsam ±25° (bei reduzierter Bewegung still, Stufe „Leicht“: Standbild) |
 | am Zoom-Anschlag weiterscrollen | Ebene tiefer bzw. zurück |
-| Zoom-Schiene links: Hex-Marke oder Tasten `1`–`7` | direkt zu einer Ebene |
+| Zoom-Schiene links: Hex-Marke oder Tasten `1`–`7` | direkt zu einer Ebene (gegliedert in `MAKRO` · `REM` · `NANO` mit Alltags-Größenvergleich je aktiver Ebene, z. B. `≈ Walnuss`, `≈ 2× Haar`, `≈ Glucose-Ring`) |
 | Zoom-Schiene: Knopf ziehen | Bildbreite stufenlos (log-Skala 20 cm → 0,5 nm); über den Anschlag der Ebene hinaus losgelassen → tiefer bzw. zurück |
-| `Esc` / `Bild ↑` · `Bild ↓` | Ebene zurück · tiefer |
+| `Esc` / `Bild ↑` · `Bild ↓` | Ebene zurück · tiefer (mit Sprungfaktor, z. B. `×40 ↓`) |
 | Zeitleiste unten im Bild: runder Knopf ▶ / ■ | Pyrolyse abspielen: Zeitraffer von Raumtemperatur bis zur Zieltemperatur (≈ 18 s) mit Phasen von „Aufheizen“ bis „Aromatisierung · Rotglut“; die Kopfzeile zeigt Temperatur, Phase und Gase; nach einem Kapitel-Sprung spielt er ab dort weiter |
-| Zeitleiste: Dreieck ziehen, auf die Spur klicken oder `←` `→` | Zieltemperatur 25–800 °C; alle Ebenen gleiten zur neuen Temperatur; Kennwerte (IPCC, EBC), Laborwerte und Nano-Struktur ändern sich; Strich auf der Spur = Grenze Holz \| Pflanzenkohle ab 350 °C |
+| Zeitleiste: Dreieck ziehen, auf die Spur klicken oder `←` `→` | Zieltemperatur 25–800 °C; alle Ebenen gleiten zur neuen Temperatur; Kennwerte (IPCC, EBC), Laborwerte (mit Live-Füllbalken) und Nano-Struktur ändern sich; Strich auf der Spur = Grenze Holz \| Pflanzenkohle ab 350 °C |
 | Zeitleiste: Kapitel-Name (Aufheizen … Aromatisierung) | springt an den Beginn dieser Phase |
 | Zeitleiste: Griff ⠿ ziehen oder Pfeiltasten | Leiste innerhalb der 3D-Ansicht verschieben (bleibt gespeichert); Doppelklick, ⟲ oder `Pos1` = zurück an den Standardplatz |
 | Regler „Luftfeuchte“ (Ebene 5) | Poren füllen sich nach der Kelvin-Gleichung mit Wasser |
+| Knopf „Messhilfen“ (oben rechts) | 3D-Messhilfen, Zonenbänder, Porenkonturen, Leitlinien und REM-Apertur-Visier ein- oder ausblenden (bleibt in `localStorage` gespeichert) |
 | Regler „Qualität“ (oben rechts) | Darstellung in drei Stufen Leicht · Mittel · Fein: Auflösung, Kantenglättung, Tiefenunschärfe, Bloom, Schatten, Detailgrad der Ebenen – für flüssige Bilder auch auf schwächeren Rechnern; ohne eigene Wahl misst die Seite kurz die Bildrate und schaltet bei Bedarf herunter („auto“) |
 
 ## Die sieben Ebenen
 
 | Ebene | Größenordnung | Darstellung | Modell |
 |---|---|---|---|
-| 1 Stück | 4 cm | Makroaufnahme | verformter Quader, prozedurale Jahrringe, Strahlen, Gefäße; Schwundrisse öffnen sich erst mit der Schwindung (Holz glatt → Kohle gerissen) |
-| 2 Gewebe | 1 mm | REM (Sekundärelektronen) | Power-Voronoi: Fasern, Gefäße (Früh-/Spätholz), Holzstrahlen, Jahrringgrenze |
-| 3 Zellen | 200 µm | REM | dieselben Zellen als 3D-Bruchstück, Röhren längs aufgebrochen, Tüpfel |
-| 4 Zellwand | 25 µm | REM | Hoftüpfel, Mikrorisse, Bruchkante, Bakterien, Pilzhyphe, Asche |
-| 5 Nanoporen | 300 nm | Modell (Raymarching) | hierarchisches 3D-Voronoi, Wasser nach Kelvin-Gleichung |
-| 6 Mikroporen | 10 nm | Modell nach XRD/HRTEM | gewellte Graphen-Schichten in Stapeln, Mikroporen, CO₂/N₂/H₂O |
-| 7 Atome | 2 nm | Molekülmodell | aromatischer Cluster mit –COO⁻/K⁺, –OH, C=O, Rand-H |
+| 1 Stück | 4 cm (`≈ Walnuss`) | Makroaufnahme | verformter Quader, prozedurale Jahrringe, Strahlen, Gefäße; Schwundrisse öffnen sich erst mit der Schwindung (Holz glatt → Kohle gerissen); gravierter Maßstabs-Objektträger (0–40 mm) und Schwundriss-Kontur |
+| 2 Gewebe | 1 mm (`≈ Bleistiftmine`) | REM (Sekundärelektronen) | Power-Voronoi: Fasern, Gefäße (Früh-/Spätholz), Holzstrahlen, Jahrringgrenze mit Poren-Zonenband |
+| 3 Zellen | 200 µm (`≈ 2× Haar`) | REM | dieselben Zellen als 3D-Bruchstück, Röhren längs aufgebrochen, Tüpfel, Kapillar-Leitfaden |
+| 4 Zellwand | 25 µm (`≈ Blutzelle`) | REM | Hoftüpfel-Kammer, Mikrorisse, Bruchkante, Bakterien mit Biofilm-Saum, Pilzhyphe, Asche |
+| 5 Nanoporen | 300 nm (`≈ Grippevirus`) | Modell (Raymarching) | hierarchisches 3D-Voronoi, Wasser nach Kelvin-Gleichung, farbige IUPAC-Porenklassen-Konturen (Makro · Meso · Mikro) |
+| 6 Mikroporen | 10 nm (`≈ 4× DNA-Helix`) | Modell nach XRD/HRTEM | gewellte Graphen-Schichten in Stapeln mit Live-Schichtabstands-Klammer (`d₀₀₂`), Mikroporen (`< 2 nm`), CO₂/N₂/H₂O |
+| 7 Atome | 2 nm (`≈ Glucose-Ring`) | Molekülmodell | aromatischer Cluster mit delokalisiertem π-Elektronenring (`0,142 nm`) und elektrostatischem Ionen-Bindungsfeld (`–COO⁻ ··· K⁺`), –OH, C=O, Rand-H |
 
 Kennwerte, Quellen und Grenzen der Modelle: [docs/research.md](docs/research.md).
 
