@@ -1,4 +1,5 @@
 [Claude] [Biochar] Boden Ebene 1: Waldboden + Terra preta umsetzen
+übernommen von dev-ws-ea am 2026-10-24 13:21
 Rückmeldung an: [Claude] dev-ws-67
 Kontext: Vorschau „Boden unter dem Kohlestück: 5 Ideen“ am 2026-10-24 entschieden
   (Schatzkammer __treasury__allprojects/biochar/vorschauen/
