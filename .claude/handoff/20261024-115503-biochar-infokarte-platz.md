@@ -1,4 +1,5 @@
 [Claude] [Biochar] Info-Karte: immer im freien Bereich (mobil, REM)
+übernommen von dev-ws-13 am 2026-10-24 11:55
 Rückmeldung an: dev-ws-83
 Kontext: Lupe in der Info-Karte ist fertig (Commit 4810ec9). Die
   Prüfung zeigte einen Altfehler, der schon vor der Lupe bestand:
