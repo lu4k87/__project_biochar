@@ -40,7 +40,7 @@ try:
       const q = (s) => document.querySelector(s), card = q('.hs-card'), on = q('.tl-chapters .is-on');
       return { ready: document.body.classList.contains('is-ready'), playing: q('#btn-play').getAttribute('aria-pressed'),
         T: q('#tl-T').textContent, goal: q('#tl-goal-T').textContent, phase: q('#tl-phase').textContent, chapter: on ? on.textContent : '',
-        tl: r(tl), box: r(q('.stage-hud')), hsb: [...document.querySelectorAll('.hsb:not(.is-off)')].map(r).filter(Boolean), bars: [r(q('.ladder')), r(q('.topbar'))].filter(Boolean), shift: tl.style.translate, moved: tl.classList.contains('is-moved'), saved: localStorage.getItem('biochar.timeline'),
+        tl: r(tl), box: [r(q('.stage-hud')), r(q('.bottombar'))].reduce((u, b) => [Math.min(u[0], b[0]), u[1], Math.max(u[2], b[2]), b[3]]), hsb: [...document.querySelectorAll('.hsb:not(.is-off)')].map(r).filter(Boolean), bars: [r(q('.ladder')), r(q('.topbar'))].filter(Boolean), shift: tl.style.translate, moved: tl.classList.contains('is-moved'), saved: localStorage.getItem('biochar.timeline-dock'),
         ui: [...document.querySelectorAll('.hsb:not(.is-off)')].map(r).concat([r(q('.sem-bar')), r(q('.nav-buttons')), r(q('#panel')), r(q('.ladder')), r(q('.topbar')),
           card && card.classList.contains('is-open') && !card.classList.contains('is-away') ? r(card) : null]).filter(Boolean) }; })()"""
     deg = lambda s: int(s.split()[0].replace('.', '')) if s and s.split()[0].replace('.', '').isdigit() else -1
@@ -53,7 +53,7 @@ try:
             if st and cond(st): return st, round(time.time() - t0, 1)
             time.sleep(0.1)
         return st, None
-    def layout(st, name):   # Zero Overlap: Leiste ganz in der Bühne, nichts darunter; Abzeichen behalten Platz unter den Leisten
+    def layout(st, name):   # Zero Overlap: Leiste ganz in Bühne + Fußleiste, nichts darunter; Abzeichen behalten Platz unter den Leisten
         ov = sum(overlap(st['tl'], b) for b in st['ui'])
         hb = sum(overlap(a, b) for a in st['hsb'] for b in st['bars'])
         if ov or hb or not inside(st['tl'], st['box']): bad.append(f'{name}: Überlappungen {ov}, Abzeichen auf Leiste {hb}, in der Bühne {inside(st["tl"], st["box"])}')
@@ -68,7 +68,7 @@ try:
         feats = [{'name': 'prefers-color-scheme', 'value': scheme}] + ([{'name': 'prefers-reduced-motion', 'value': 'reduce'}] if reduced else [])
         call('Emulation.setEmulatedMedia', {'features': feats})
         call('Page.navigate', {'url': URL})
-        js("localStorage.removeItem('biochar.timeline')")
+        js("localStorage.removeItem('biochar.timeline-dock')")
         st, ready = wait(lambda s: s['ready'], 30)
         st, on = wait(lambda s: s['playing'] == 'true', 10)
         st, mid = wait(lambda s: s['playing'] == 'true' and deg(s['T']) >= 380, 15)
