@@ -46,6 +46,12 @@ test('Clustergröße wächst mit der Temperatur', () => {
   assert.ok(nanoStructure(600).rings > nanoStructure(450).rings);
 });
 
+test('Schichtdurchmesser folgt den Domänengrößen nach Wood et al. (2023)', () => {
+  assert.ok(Math.abs(nanoStructure(400).sheetNm - 0.89) < 0.03);   // ≈ 12 Ringe
+  assert.ok(Math.abs(nanoStructure(600).sheetNm - 1.65) < 0.08);   // ≈ 41 Ringe
+  assert.ok(Math.abs(nanoStructure(800).sheetNm - 3.2) < 0.1);     // ≈ 155 Ringe
+});
+
 test('Pyrolyse-Zeitraffer: Masse fällt stetig und trifft die Tabelle bei 350 °C', () => {
   assert.ok(Math.abs(pyroState(350).mass - properties(350).yield) < 0.5);
   assert.equal(pyroState(25).mass, 100);
