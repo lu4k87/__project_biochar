@@ -21,7 +21,7 @@ Dann `http://localhost:8470/` öffnen. Für Ausstellungen: `http://localhost:847
 | Zoom-Schiene links: Hex-Marke oder Tasten `1`–`7` | direkt zu einer Ebene (gegliedert in `MAKRO` · `REM` · `NANO` mit Alltags-Größenvergleich je aktiver Ebene, z. B. `≈ Walnuss`, `≈ 2× Haar`, `≈ Glucose-Ring`) |
 | Zoom-Schiene: Knopf ziehen | Bildbreite stufenlos (log-Skala 20 cm → 0,5 nm); über den Anschlag der Ebene hinaus losgelassen → tiefer bzw. zurück |
 | `Esc` / `Bild ↑` · `Bild ↓` | Ebene zurück · tiefer (mit Sprungfaktor, z. B. `×40 ↓`) |
-| Zeitleiste unten im Bild: runder Knopf ▶ / ■ | Pyrolyse abspielen: Zeitraffer von Raumtemperatur bis zur Zieltemperatur (≈ 18 s) mit Phasen von „Aufheizen“ bis „Aromatisierung · Rotglut“; die Kopfzeile zeigt Temperatur, Phase und Gase; nach einem Kapitel-Sprung spielt er ab dort weiter |
+| Zeitleiste unten im Bild: runder Knopf ▶ / ■ | Pyrolyse abspielen: Zeitraffer von Raumtemperatur bis zur Zieltemperatur (≈ 8 s) mit Phasen von „Aufheizen“ bis „Aromatisierung · Rotglut“; die Kopfzeile zeigt Temperatur, Phase und Gase; nach einem Kapitel-Sprung spielt er ab dort weiter |
 | Zeitleiste: Dreieck ziehen, auf die Spur klicken oder `←` `→` | Zieltemperatur 25–800 °C; alle Ebenen gleiten zur neuen Temperatur; Kennwerte (IPCC, EBC), Laborwerte (mit Live-Füllbalken) und Nano-Struktur ändern sich; Strich auf der Spur = Grenze Holz \| Pflanzenkohle ab 350 °C |
 | Zeitleiste: Kapitel-Name (Aufheizen … Aromatisierung) | springt an den Beginn dieser Phase |
 | Zeitleiste: Griff ⠿ ziehen oder Pfeiltasten | Leiste innerhalb der 3D-Ansicht verschieben (bleibt gespeichert); Doppelklick, ⟲ oder `Pos1` = zurück an den Standardplatz |
