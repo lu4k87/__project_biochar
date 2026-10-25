@@ -5,6 +5,6 @@
   "description": "Interaktive 3D-Reise in die Struktur von Pflanzenkohle (three.js, ohne Build).",
   "scripts": {
     "serve": "python3 -m http.server 8470 --bind 127.0.0.1 --directory web",
-    "test": "node tests/science.test.js"
+    "test": "node tests/science.test.js && node tests/quality.test.js"
   }
 }
