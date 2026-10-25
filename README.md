@@ -26,8 +26,8 @@ Dann `http://localhost:8470/` öffnen. Für Ausstellungen: `http://localhost:847
 | Zeitleiste: Kapitel-Name (Aufheizen … Aromatisierung) | springt an den Beginn dieser Phase |
 | Zeitleiste: Griff ⠿ ziehen oder Pfeiltasten | Leiste in die 3D-Ansicht verschieben (bleibt gespeichert); Doppelklick, ⟲ oder `Pos1` = zurück an den Standardplatz |
 | Regler „Luftfeuchte“ (Ebene 5) | Poren füllen sich nach der Kelvin-Gleichung mit Wasser |
-| Knopf „Messhilfen“ (oben rechts) | 3D-Messhilfen, Zonenbänder, Porenkonturen, Leitlinien und REM-Apertur-Visier ein- oder ausblenden (bleibt in `localStorage` gespeichert) |
-| Regler „Qualität“ (oben rechts) | Darstellung in drei Stufen Leicht · Mittel · Fein: Auflösung, Kantenglättung, Tiefenunschärfe, Bloom, Schatten, Detailgrad der Ebenen – für flüssige Bilder auch auf schwächeren Rechnern; ohne eigene Wahl misst die Seite kurz die Bildrate und schaltet bei Bedarf herunter („auto“) |
+| Zahnrad (oben rechts) | Einstellungen öffnen; oben drei Kacheln: **Hell / Dunkel** (Auto → Hell → Dunkel, Auto = Systemeinstellung), **Infotafel** rechts ein/aus, **Messhilfen** (3D-Messhilfen, Zonenbänder, Porenkonturen, Leitlinien, REM-Apertur-Visier) ein/aus; Wahl bleibt in `localStorage` gespeichert (Infotafel nur bis zum Neuladen) |
+| Einstellungen → „Qualität“ | Darstellung in drei Stufen Leicht · Mittel · Fein: Auflösung, Kantenglättung, Tiefenunschärfe, Bloom, Schatten, Detailgrad der Ebenen – für flüssige Bilder auch auf schwächeren Rechnern; ohne eigene Wahl misst die Seite kurz die Bildrate und schaltet bei Bedarf herunter („auto“) |
 
 ## Die sieben Ebenen
 
