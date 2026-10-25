@@ -1,6 +1,7 @@
 # Prüft die Kennzahl-Karten (.facts) im Headless-Chrome per CDP: je Ebene und Breite bricht der Wert nur an „ · “, kein Wort ragt
 # über die Karte hinaus, Balken einer Zeile liegen auf einer Linie, Karten bleiben im Panel; Konsole ohne Fehler.
-# Ab 1440 px Breite (900 px hoch) passt die Tafel zugeklappt ohne Scrollen (Vorschau 2026-10-25, Panel:B).
+# Ab 1440 px Breite (900 px hoch) passt die Tafel zugeklappt ohne Scrollen (Vorschau 2026-10-25, Panel:B); Ebene 5–7 dürfen
+# scrollen (zu viel Inhalt, User 2026-10-25).
 # Aufruf: python3 tests/facts_check.py [breiten=1440,1024,390] [ebenen=1,…,7] [bilder-ordner]  (SCHEME=light für hell;
 # eigene Instanz auf Port 8471, Server des Users bleibt)
 import base64, json, os, socket, subprocess, sys, tempfile, time, urllib.request
@@ -12,6 +13,7 @@ WIDTHS = [int(w) for w in (sys.argv[1] if len(sys.argv) > 1 else '1440,1024,390'
 LEVELS = [int(n) for n in (sys.argv[2] if len(sys.argv) > 2 else '1,2,3,4,5,6,7').split(',')]
 SHOTS = sys.argv[3] if len(sys.argv) > 3 else None
 SCHEME = os.environ.get('SCHEME', 'dark')
+SCROLL_OK = {5, 6, 7}   # Ebenen, deren Tafel bei 1440 × 900 scrollen darf
 PROFILE = tempfile.mkdtemp(prefix='biochar-facts-')
 if SHOTS: os.makedirs(SHOTS, exist_ok=True)
 
@@ -69,8 +71,10 @@ try:
             js("document.querySelector('.facts')?.scrollIntoView({block: 'center'})"); time.sleep(0.3)
             m = js(MEASURE)
             if not m: print(f'{w} px · Ebene {n}: keine Kennzahlen'); continue
-            # ponytail: nur Hinweis, solange Ebene 4–7 offen sind (Rückfrage 2026-10-25), danach als Fehler zählen
-            fit = '' if w < 1440 or m['fit'][0] <= m['fit'][1] else f" ⚠️ Tafel scrollt: {m['fit'][0]} / {m['fit'][1]} px"
+            fit = ''
+            if w >= 1440 and m['fit'][0] > m['fit'][1]:
+                if n in SCROLL_OK: fit = f" ℹ️ scrollt (erlaubt): {m['fit'][0]} / {m['fit'][1]} px"
+                else: m['problems'].append(f"Tafel scrollt: {m['fit'][0]} / {m['fit'][1]} px")
             bad += len(m['problems'])
             print(f"{w} px · Ebene {n} · Tafel {m['fit'][0]} / {m['fit'][1]} px: {'✅' if not m['problems'] else '❌ ' + ' · '.join(m['problems'])}{fit}")
             if SHOTS:
