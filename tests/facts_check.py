@@ -1,5 +1,6 @@
 # Prüft die Kennzahl-Karten (.facts) im Headless-Chrome per CDP: je Ebene und Breite bricht der Wert nur an „ · “, kein Wort ragt
 # über die Karte hinaus, Balken einer Zeile liegen auf einer Linie, Karten bleiben im Panel; Konsole ohne Fehler.
+# Ab 1440 px Breite (900 px hoch) passt die Tafel zugeklappt ohne Scrollen (Vorschau 2026-10-25, Panel:B).
 # Aufruf: python3 tests/facts_check.py [breiten=1440,1024,390] [ebenen=1,…,7] [bilder-ordner]  (SCHEME=light für hell;
 # eigene Instanz auf Port 8471, Server des Users bleibt)
 import base64, json, os, socket, subprocess, sys, tempfile, time, urllib.request
@@ -53,7 +54,8 @@ try:
         (rows[Math.round(c.top)] ??= []).push(Math.round(r(bar).bottom));
       });
       Object.values(rows).forEach((b) => { if (Math.max(...b) - Math.min(...b) > 1) problems.push(`Balken einer Zeile versetzt: ${b.join(' / ')} px`); });
-      const b = r(box); return { problems, clip: [b.left, b.top, b.width, b.height] }; })()"""
+      const pb = document.querySelector('#panel-body'), b = r(box);
+      return { problems, fit: [pb.scrollHeight, pb.clientHeight], clip: [b.left, b.top, b.width, b.height] }; })()"""
     bad = 0
     for w in WIDTHS:
         call('Emulation.setDeviceMetricsOverride', {'width': w, 'height': 900 if w > 600 else 844, 'deviceScaleFactor': 1, 'mobile': w < 600})
@@ -67,8 +69,10 @@ try:
             js("document.querySelector('.facts')?.scrollIntoView({block: 'center'})"); time.sleep(0.3)
             m = js(MEASURE)
             if not m: print(f'{w} px · Ebene {n}: keine Kennzahlen'); continue
+            # ponytail: nur Hinweis, solange Ebene 4–7 offen sind (Rückfrage 2026-10-25), danach als Fehler zählen
+            fit = '' if w < 1440 or m['fit'][0] <= m['fit'][1] else f" ⚠️ Tafel scrollt: {m['fit'][0]} / {m['fit'][1]} px"
             bad += len(m['problems'])
-            print(f"{w} px · Ebene {n}: {'✅' if not m['problems'] else '❌ ' + ' · '.join(m['problems'])}")
+            print(f"{w} px · Ebene {n} · Tafel {m['fit'][0]} / {m['fit'][1]} px: {'✅' if not m['problems'] else '❌ ' + ' · '.join(m['problems'])}{fit}")
             if SHOTS:
                 x, y, cw, ch = m['clip']
                 img = call('Page.captureScreenshot', {'format': 'png', 'clip': {'x': x - 8, 'y': y - 8, 'width': cw + 16, 'height': ch + 16, 'scale': 1}})
