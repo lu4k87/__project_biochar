@@ -1,4 +1,5 @@
 [Claude] [Biochar] Infotafel ohne Scrollen umsetzen (Panel:B)
+übernommen von dev-ws-42 am 2026-10-25 13:14
 Rückmeldung an: dev-ws-42
 Kontext: Infotafel rechts (web/js/hud.js render(), ab Zeile ~420) ist auf
   Ebene 3 bei 1440 × 900 heute 1982 px hoch, sichtbar 866 px. Vorschau
