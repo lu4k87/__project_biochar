@@ -5,6 +5,7 @@ import assert from 'assert';
 import { properties, fperm, kelvinDiameterNm, fillDiameterNm, kelvinRh, desorbDiameterNm, wetDiameterNm, poreClass, filledShare, isotherm, nanoStructure, pyroState, glowColor, DRAPER, tissueScale } from '../web/js/science.js';
 import { powerCells, polygonArea } from '../web/js/voronoi.js';
 import { mulberry32 } from '../web/js/util.js';
+import { LEVELS, SOURCES } from '../web/js/content.js';
 
 let failed = 0;
 function test(name, fn) {
@@ -125,8 +126,6 @@ test('Holz → Kohle je Ebene (Modell): Stärke, Tüpfelmembran, Fibrillen versc
   }
 });
 
-process.exitCode = failed ? 1 : 0;
-
 test('Hysterese: Füllen nach Kelvin, Entleeren erst bei tieferer Feuchte (Cohan, Modell)', () => {
   // Entleerungsast = halbkugeliger Meniskus, liegt bei gleicher Feuchte über dem Füllast: p_Entleeren = p_Füllen²
   assert.equal(desorbDiameterNm(0.9), kelvinDiameterNm(0.9));
@@ -156,3 +155,12 @@ test('Porenklassen und Isotherme (Modell)', () => {
   }
   assert.ok(iso.ads[iso.ads.length - 1][1] > 0.99);
 });
+
+test('Quellen: Nummer = Platz in der Liste, jeder Verweis [n] hat ein Ziel, Link mit https', () => {
+  SOURCES.forEach((s, i) => assert.strictEqual(s.id, i + 1, `Quelle an Platz ${i + 1} hat id ${s.id}`));
+  const ids = new Set(SOURCES.map((s) => s.id));
+  LEVELS.forEach((l) => l.refs.forEach((r) => assert.ok(ids.has(r), `${l.id}: Verweis [${r}] ohne Quelle`)));
+  SOURCES.forEach((s) => assert.match(s.url, /^https:\/\//, `Quelle ${s.id}: ${s.url}`));
+});
+
+process.exitCode = failed ? 1 : 0;
