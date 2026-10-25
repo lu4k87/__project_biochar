@@ -21,6 +21,12 @@ Grundlage für Texte und Modelle der Seite. Zahlen mit Quelle; alles andere ist 
 | Fünf- und Siebenringe in nicht-graphitierender Kohle | im TEM-Bild nachgewiesen, zufällig im Sechseckgitter; Ursache der Krümmung | Harris et al. 2008; Allen et al. 2022 |
 | Zugang der Messgase zu Mikroporen | N₂ (−196 °C) erreicht Poren < 0,5 nm nicht; CO₂ (0 °C) erfasst Poren bis ≈ 1,5 nm | Wood et al. 2023, Teil 1 (arXiv:2303.09661) |
 | Zellulose Iβ | Faserperiode c = 1,038 nm (Cellobiose, 2 Glucose-Ringe) | Nishiyama et al. 2002 |
+| Kinetische Durchmesser der Messgase | H₂O 0,265 · CO₂ 0,33 · N₂ 0,364 · CH₄ 0,38 nm | Breck 1974, Tab. 8.14 |
+| Knudsen-Diffusion | D = d/3 · √(8RT/πM), wenn die freie Weglänge (Luft ≈ 68 nm) die Pore weit übertrifft → leichte Moleküle schneller | Knudsen 1909, Ann. Phys. 333, 75–130 |
+| Röntgenbeugung turbostratischer Kohle | (002) breit bei 2θ ≈ 22–25° (Cu Kα, Graphit 26,6°), Breite ∝ 1/Lc (Scherrer, K = 0,9); zweidimensionale (10)-Bande, K = 1,84 | Scherrer 1918; Warren 1941; Franklin 1951 |
+| Raman D/G | I_D/I_G = 0,0055 Å⁻² · La² unter 2 nm (514 nm), 4,4 nm / La darüber; D 1350, G 1580–1600 cm⁻¹ | Ferrari & Robertson 2000; Tuinstra & Koenig 1970 |
+| Stone-Wales-Defekt | 90°-Drehung einer C–C-Bindung: vier Sechsringe → 5-7-7-5 | Stone & Wales 1986 |
+| Warum keine Graphitierung | gekrümmte, fullerenartige Fragmente mit Fünf-/Siebenringen stapeln nicht | Harris 2005, Crit. Rev. Solid State Mater. Sci. 30, 235–253 |
 | van-der-Waals-Radien | C 0,17 · O 0,152 · N 0,155 · H 0,12 nm | Bondi 1964 |
 | Redoxaktive Gruppen | Biochar nimmt Elektronen auf und gibt sie ab | Klüpfel et al. 2014 |
 | Kelvin-Gleichung (Wasser, 25 °C) | 2γVm/(RT) = 1,05 nm → 50 % rF ≈ 4 nm, 90 % ≈ 21 nm, 99 % ≈ 210 nm | Physikalische Chemie, eigene Rechnung |
@@ -35,7 +41,9 @@ Grundlage für Texte und Modelle der Seite. Zahlen mit Quelle; alles andere ist 
 - **Kategoriegrenzen** nach Keiluweit et al. 2010 auf 450 °C und 650 °C gerundet.
 - **Ebene 5:** dichte, amorphe Bruchfläche mit Schlitzporen, wenigen rundlichen Mesoporen und einem Schwundriss (Neufassung 2026-10-24, unten) – Anordnung, Zahl und Form sind Modell.
 - **Ebene 6:** Schichtgröße nach Wood et al. 2023 (≈ 0,8 nm bei 350 °C → ≈ 3,2 nm bei 800 °C, exponentiell in der Ringzahl); NMR-Clustergrößen (AIChE 2010) fallen kleiner, XRD-La-Werte eher größer aus – die Spanne der Literatur ist breit. 1–3 Schichten je Stapel, Abstand 0,40 → 0,36 nm (Richtwerte).
-- **Ebene 7:** eben, ohne Fünf-/Siebenring-Defekte (Harris-Modell gekrümmter Schichten nur im Text erwähnt), Sauerstoffgruppen gleichmäßig verteilt.
+- **Ebene 7:** ab 7 Ringen (≈ 525 °C) ein Stone-Wales-Defekt (Bindung Mittelring ↔ Nachbar um 90° gedreht → 2 Fünf-, 2 Siebenringe, golden) mit Wölbung (Schale R ≈ 2 nm + sinusförmige Kippung ≈ 0,9 Å an der Bindung – Stärke Modell, Richtung Harris 2005); kleinere Cluster eben; Sauerstoffgruppen gleichmäßig verteilt.
+- **Ebene 5 Rennen:** 6-nm-Schlitz als eigene Pore (Lage Modell), Geschwindigkeiten ∝ 1/√M (Knudsen), stark verlangsamt (CH₄ ≈ 4 nm/s statt 630 m/s); Zickzack = Wandstöße; Moleküle in der Übersicht auf mindestens 5 px vergrößert, nah dran maßstäblich; Pore voll Wasser (Kelvin) → Rennen pausiert.
+- **Ebene 6 Spektren:** XRD und Raman sind aus `nanoStructure` gerechnet (Bragg, Scherrer, Ferrari–Robertson/Tuinstra–Koenig), keine Messung; Anteil gestapelter Schichten, Bandbreiten, Untergrund Modell.
 
 ### Detailstufe 2026-10-23 (Modelle, keine Messwerte)
 - **Ebene 1 (Stück):** Gefäße auf der Stirnfläche in echter Größe (Ø 24 ± 12 µm Frühholz, 15 ± 9 µm Spätholz nach Prommer et al. 2014) bei ≈ 120 Gefäßen je mm² – Richtwert in der Größenordnung, die Holzanatomie-Atlanten für zerstreutporige Buche nennen; bei ≈ 11 µm je Texturpixel sind sie nur aus der Nähe als Körnung sichtbar, wie unter der Lupe. Jahrringbreite im Modell ≈ 2,6 mm. Faserriefen, angeschnittene Gefäße (0,3–1 mm lange Rinnen) und Strahl-Spiegel auf den Längsflächen, muschelige Bruchflächen an den Abplatzern, Krümel 0,2–3 mm, Staub 80–300 µm. Form (Wahl des Users 2026-10-23): längs gespaltener Splitter mit Keil-Querschnitt, faseriger Spaltfläche und zerfasertem Bruchende; Würfelrisse aus der Schwindung als Geometrie (quer zur Faser, längs entlang der Holzstrahlen, ein Ringriss; Öffnung ≈ 0,64 mm, Tiefe ≈ 1,4 mm bei 550 °C, bis 0,75 bzw. 1,6 mm bei 800 °C, Blöcke bis ≈ 0,3 mm versetzt; dazwischen feine Querrisse) – Modell, Maße geschätzt. Holzzustand (Wunsch des Users 2026-10-24): nur leicht rau, Gefäßrinnen und Faserriefen flach (Relief ≈ 15 % der Kohle bis ≈ 380 °C) und farblich nur als feine Körnung.
