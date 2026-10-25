@@ -2,7 +2,7 @@
 // Läuft ohne Testframework (auch mit älterem Node): node tests/science.test.js
 
 import assert from 'assert';
-import { properties, fperm, kelvinDiameterNm, fillDiameterNm, kelvinRh, desorbDiameterNm, wetDiameterNm, poreClass, filledShare, isotherm, nanoStructure, pyroState, glowColor, DRAPER, tissueScale } from '../web/js/science.js';
+import { properties, fperm, kelvinDiameterNm, fillDiameterNm, kelvinRh, desorbDiameterNm, wetDiameterNm, poreClass, filledShare, isotherm, nanoStructure, pyroState, glowColor, DRAPER, tissueScale, conductivity, fmtOhm, wettability, capillaryRise, capillaryTime, shrinkPercent } from '../web/js/science.js';
 import { powerCells, polygonArea } from '../web/js/voronoi.js';
 import { mulberry32 } from '../web/js/util.js';
 import { LEVELS, SOURCES } from '../web/js/content.js';
@@ -161,6 +161,38 @@ test('Quellen: Nummer = Platz in der Liste, jeder Verweis [n] hat ein Ziel, Link
   const ids = new Set(SOURCES.map((s) => s.id));
   LEVELS.forEach((l) => l.refs.forEach((r) => assert.ok(ids.has(r), `${l.id}: Verweis [${r}] ohne Quelle`)));
   SOURCES.forEach((s) => assert.match(s.url, /^https:\/\//, `Quelle ${s.id}: ${s.url}`));
+});
+
+test('Leitfähigkeit (Modell): monoton, 500 → 700 °C um ≥ 3 Dekaden, ≈ 1 S/m bei 600 °C, 300–3000 S/m bei 1000 °C', () => {
+  let last = 0;
+  for (let T = 25; T <= 1000; T += 25) { const s = conductivity(T).sigma; assert.ok(s >= last, `σ fällt bei ${T} °C`); last = s; }
+  assert.ok(Math.log10(conductivity(700).sigma / conductivity(500).sigma) >= 3);
+  assert.ok(Math.abs(Math.log10(conductivity(600).sigma)) < 0.3);
+  assert.ok(conductivity(1000).sigma > 300 && conductivity(1000).sigma < 3000);
+  assert.equal(conductivity(400).k, 0);
+  assert.equal(conductivity(800).k, 1);
+  assert.equal(fmtOhm(1700), '1,7 kΩ');
+  assert.equal(fmtOhm(3e9), 'OL');
+});
+
+test('Benetzung + Lucas-Washburn: 300–400 °C hydrophob ohne Aufstieg, ab 550 °C h ∝ √t (≈ 0,58 mm je ms bei r = 12 µm)', () => {
+  assert.ok(wettability(350).hydrophobic && wettability(400).hydrophobic);
+  assert.ok(!wettability(100).hydrophobic && !wettability(550).hydrophobic);
+  assert.equal(capillaryRise(12, 1, 380), 0);
+  const h1 = capillaryRise(12, 1e-3, 550), h4 = capillaryRise(12, 4e-3, 550);
+  assert.ok(Math.abs(h4 / h1 - 2) < 1e-9);
+  assert.ok(h1 > 500 && h1 < 650, `h(1 ms) = ${h1} µm`);
+  assert.ok(Math.abs(capillaryTime(12, h1, 550) - 1e-3) < 1e-12);
+  assert.equal(capillaryTime(12, 100, 380), Infinity);
+});
+
+test('Schwund-Richtungen: tangential > radial > längs, Mittel = Querschwindung; Ebene-2-Skalen x < y < z', () => {
+  const p = shrinkPercent(800);
+  assert.ok(p.tan > p.rad && p.rad > p.lon);
+  assert.ok(Math.abs((p.tan + p.rad) / 2 - 100 * pyroState(800).shrinkT) < 1e-9);
+  const k = tissueScale(800), w = tissueScale(25);
+  assert.ok(k.x < k.y && k.y < k.z);
+  assert.ok(w.x > w.y && w.y > w.z && w.x > 1);
 });
 
 process.exitCode = failed ? 1 : 0;
