@@ -9,7 +9,7 @@
   <meta name="color-scheme" content="dark light">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap">
   <link rel="stylesheet" href="css/biochar.css">
   <script type="importmap">
     { "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
@@ -39,6 +39,11 @@
     </nav>
 
     <div class="stage-hud">
+      <div class="caption" id="caption" aria-live="polite">
+        <p class="cap-n"></p>
+        <h2 class="cap-title"></h2>
+        <p class="cap-sub"></p>
+      </div>
       <div class="center-hint">
         <p class="hint">Ziehen dreht · Scrollen zoomt · orange Abzeichen führen tiefer</p>
         <div id="edge-meter" class="edge-meter" aria-hidden="true"><span></span><i></i></div>
