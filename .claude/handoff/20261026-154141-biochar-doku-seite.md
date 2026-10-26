@@ -1,4 +1,5 @@
 [Claude] [Biochar] Doku-Seite readme_biochar.html + Fibrille prüfen
+übernommen von dev-ws-d5 am 2026-10-26 15:43
 Rückmeldung an: dev-ws-bb
 Kontext: Projekt ~/__project_biochar (three.js ohne Build), zuerst
   AGENTS.md. README.md, AGENTS.md, docs/research.md sind seit
