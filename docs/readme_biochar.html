@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Biochar · Reise in die Pflanzenkohle</title>
+<meta name="description" content="Interaktive, wissenschaftlich belegte 3D-Reise in die Struktur von Pflanzenkohle in sieben Ebenen – vom Stück Buchenkohle bis zu den Atomen. Doku der Web-App.">
+<style>
+  :root {
+    --bg: #f5f2ec; --surface: #ffffff; --line: #d9d2c4;
+    --text: #17150f; --accent: #b8520c; --accent-soft: #f7e3d2; --code-bg: #ebe5d8;
+    --radius-sm: 4px; --radius: 6px; --radius-lg: 8px;
+    --gap: 24px; --max: 1080px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0c0d10; --surface: #16171b; --line: #2e2f35;
+      --text: #f4f1ea; --accent: #ff9a3c; --accent-soft: #3a2412; --code-bg: #23242a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0c0d10; --surface: #16171b; --line: #2e2f35;
+    --text: #f4f1ea; --accent: #ff9a3c; --accent-soft: #3a2412; --code-bg: #23242a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif;
+  }
+  main { max-width: var(--max); margin: 0 auto; padding: 48px 16px 64px; display: grid; gap: 64px; }
+  h1 { font-size: clamp(2rem, 5vw, 3rem); line-height: 1.1; margin: 0; }
+  h2 { font-size: 1.6rem; margin: 0 0 8px; }
+  h3 { font-size: 1.1rem; margin: 0; }
+  p { margin: 0; max-width: 68ch; }
+  a { color: var(--accent); overflow-wrap: anywhere; }
+  code { font: 0.92em/1.5 ui-monospace, "DejaVu Sans Mono", monospace; background: var(--code-bg); padding: 1px 6px; border-radius: var(--radius-sm); }
+  pre { font: 0.92em/1.5 ui-monospace, "DejaVu Sans Mono", monospace; background: var(--code-bg); padding: 16px; border-radius: var(--radius); overflow-x: auto; margin: 0; }
+  pre code { background: none; padding: 0; }
+  section { display: grid; gap: var(--gap); }
+  main > *, section > * { min-width: 0; }   /* breite Tabellen scrollen in .table-wrap statt die Seite zu verbreitern */
+
+  /* schmaler Balken statt Standard-Scrollbar */
+  pre, .table-wrap { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+  pre::-webkit-scrollbar, .table-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+  pre::-webkit-scrollbar-track, .table-wrap::-webkit-scrollbar-track { background: transparent; }
+  pre::-webkit-scrollbar-thumb, .table-wrap::-webkit-scrollbar-thumb { background: var(--line); border-radius: var(--radius-sm); }
+
+  .hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 40px; align-items: center; }
+  .hero-text { display: grid; gap: 20px; }
+  .lead { font-size: 1.2rem; }
+  .tag { justify-self: start; background: var(--accent-soft); color: var(--text); font-weight: 600;
+         padding: 4px 12px; border-radius: var(--radius); font-size: 0.95rem; }
+  .facts { display: flex; flex-wrap: wrap; gap: 12px; padding: 0; margin: 0; list-style: none; }
+  .facts li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 14px; }
+
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--gap); padding: 0; margin: 0; list-style: none; counter-reset: step; }
+  .steps li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 20px; display: grid; gap: 8px; align-content: start; }
+  .steps li::before { counter-increment: step; content: counter(step); font-weight: 700; font-size: 1.4rem; color: var(--accent); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--gap); }
+  .wide { grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); }
+  figure { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg);
+           padding: 12px; display: grid; gap: 12px; align-content: start; }
+  figcaption { display: grid; gap: 4px; padding: 0 4px 4px; }
+  .pos { font-weight: 600; color: var(--accent); }
+
+  /* Platzhalter: <div class="shot"> durch <img src="img/…png" width height alt> ersetzen */
+  .shot { aspect-ratio: 16 / 9; display: grid; place-items: center; text-align: center; padding: 16px;
+          border: 2px dashed var(--line); border-radius: var(--radius-lg); background: var(--code-bg); }
+  .shot span { display: grid; gap: 4px; max-width: 32ch; }
+  .shot b { color: var(--accent); }
+
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: var(--radius-lg); overflow: hidden; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--code-bg); }
+  td:first-child { white-space: nowrap; }
+  .table-wrap { overflow-x: auto; }
+  /* schmal: jede Zeile als Block untereinander statt gequetschter Spalten */
+  @media (max-width: 600px) {
+    .stack thead { display: none; }
+    .stack tr { display: grid; gap: 4px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+    .stack td { padding: 0; border: 0; hyphens: auto; }
+    .stack td:first-child { font-weight: 600; }
+  }
+  ul.plain { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; max-width: 75ch; }
+  .note { background: var(--accent-soft); border-radius: var(--radius); padding: 12px 16px; max-width: 75ch; }
+  footer { border-top: 1px solid var(--line); padding-top: 24px; display: grid; gap: 8px; }
+</style>
+</head>
+<body>
+<main>
+
+  <header class="hero">
+    <div class="hero-text">
+      <span class="tag">3D-Web-App · three.js · WebGL 2</span>
+      <h1>Biochar<br>Reise in die Pflanzenkohle</h1>
+      <p class="lead">Vom Stück Buchen-Pflanzenkohle zoomt die Kamera in <strong>sieben Ebenen</strong> bis zu den Atomen: Gewebe, Zellen, Zellwand mit Tüpfeln, Nanoporen, turbostratischer Kohlenstoff. <strong>Ein Klick auf ein oranges Abzeichen</strong> fliegt eine Ebene tiefer.</p>
+      <p>Jede Zahl der Seite hat eine Quelle (IUPAC, IPCC, Fachartikel); was ein Modell oder ein Richtwert ist, steht dabei. Die Pyrolyse-Zeitleiste zeigt, wie aus Holz zwischen 25 und 800 °C Kohle wird.</p>
+      <ul class="facts">
+        <li>7 Ebenen, von 4 cm bis 2 nm Bildbreite</li>
+        <li>Pyrolyse im Zeitraffer, 25–800 °C</li>
+        <li>43 Quellen, je Ebene in der Infotafel</li>
+        <li>Kein Build, läuft lokal im Browser</li>
+      </ul>
+    </div>
+    <div class="shot" role="img" aria-label="Platzhalter für das Titelbild der Web-App"><span><b>Screenshot folgt</b>Titelbild: Stück Pflanzenkohle auf Waldboden mit Zoom-Schiene und Infotafel</span></div>
+  </header>
+
+  <section>
+    <h2>So bedienst du es</h2>
+    <ol class="steps">
+      <li><h3>Schauen</h3><p>Ziehen dreht die Ansicht, Scrollen zoomt. Am Zoom-Anschlag weiterscrollen führt eine Ebene tiefer bzw. zurück.</p></li>
+      <li><h3>Hineinfliegen</h3><p>Ein oranges Abzeichen führt eine Ebene tiefer, z. B. vom Gewebe in die Zellen. Der Flug ist durchgehend, ohne sichtbare Überblendung.</p></li>
+      <li><h3>Entdecken</h3><p>Weiße Abzeichen schwenken die Kamera hin und öffnen die Info-Karte mit runder Lupe. Die Infotafel nennt Kennzahlen und Quellen.</p></li>
+      <li><h3>Verkohlen</h3><p>Die Zeitleiste unten spielt die Pyrolyse ab oder setzt die Temperatur. Alle Ebenen gleiten mit: Risse öffnen sich, Fasern zerfallen, Poren entstehen.</p></li>
+    </ol>
+  </section>
+
+  <section>
+    <div>
+      <h2>Die Oberfläche</h2>
+      <p>Die Szene füllt das ganze Fenster. Alles Bedienende liegt als Schicht darüber.</p>
+    </div>
+    <div class="grid wide">
+      <figure>
+        <div class="shot" role="img" aria-label="Platzhalter Zoom-Schiene"><span><b>Screenshot folgt</b>Zoom-Schiene links</span></div>
+        <figcaption><span class="pos">Zoom-Schiene</span><span>Bildbreite stufenlos von 20 cm bis 0,5 nm, gegliedert in MAKRO, REM und NANO, mit Alltagsvergleich je Ebene (z. B. „≈ 2× Haar“). Ein Klick auf eine Marke oder die Tasten 1–7 springen direkt.</span></figcaption>
+      </figure>
+      <figure>
+        <div class="shot" role="img" aria-label="Platzhalter Infotafel"><span><b>Screenshot folgt</b>Infotafel rechts mit Pyrolyse-Labor</span></div>
+        <figcaption><span class="pos">Infotafel</span><span>Kennzahlen der Ebene, Pyrolyse-Labor mit Laborwerten gegenüber dem Rohholz, in Ebene 6 Röntgenbeugung und Raman-Spektrum, darunter die Quellen.</span></figcaption>
+      </figure>
+      <figure>
+        <div class="shot" role="img" aria-label="Platzhalter Info-Karte"><span><b>Screenshot folgt</b>Abzeichen mit Info-Karte und Lupe</span></div>
+        <figcaption><span class="pos">Abzeichen und Info-Karte</span><span>Orange Abzeichen führen tiefer, weiße erklären. Ein nummerierter Entdeckungs-Pfad mit 45°-Leitlinien verbindet Abzeichen und Karte; die Lupe zeigt einen Live-Ausschnitt um den Punkt.</span></figcaption>
+      </figure>
+      <figure>
+        <div class="shot" role="img" aria-label="Platzhalter Zeitleiste"><span><b>Screenshot folgt</b>Pyrolyse-Zeitleiste unten</span></div>
+        <figcaption><span class="pos">Pyrolyse-Zeitleiste</span><span>Abspielen von Raumtemperatur bis zur Zieltemperatur, Kapitel von „Aufheizen“ bis „Aromatisierung · Rotglut“. Die Kopfzeile zeigt Temperatur, Phase und austretende Gase.</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div>
+      <h2>Die sieben Ebenen</h2>
+      <p>Von Ebene zu Ebene schrumpft die Bildbreite auf ein Fünftel bis ein Achtzigstel. Die Ebenen 2 bis 4 sehen aus wie Bilder eines Rasterelektronenmikroskops (REM), die Ebenen 5 bis 7 sind Modelle nach Messdaten.</p>
+    </div>
+    <div class="table-wrap">
+      <table class="stack">
+        <thead><tr><th>Ebene</th><th>Bildbreite</th><th>Darstellung</th><th>Was du siehst</th></tr></thead>
+        <tbody>
+          <tr><td>1 Stück</td><td>4 cm · ≈ Walnuss</td><td>Makroaufnahme</td><td>Längs gespaltener Splitter auf Waldboden mit Buchenlaub und Terra preta; Jahrringe, Holzstrahlen, Gefäße; Schwundrisse öffnen sich erst beim Verkohlen</td></tr>
+          <tr><td>2 Gewebe</td><td>1 mm · ≈ Bleistiftmine</td><td>REM</td><td>Fasern, Gefäße im Früh- und Spätholz, Holzstrahlen, Jahrringgrenze; Regler für den Kapillar-Aufstieg von Wasser</td></tr>
+          <tr><td>3 Zellen</td><td>200 µm · ≈ 2× Haar</td><td>REM</td><td>Dieselben Zellen als 3D-Bruchstück, Röhren längs aufgebrochen, Tüpfel; Detektor SE oder BSE umschaltbar</td></tr>
+          <tr><td>4 Zellwand</td><td>25 µm · ≈ Blutzelle</td><td>REM</td><td>Hoftüpfel-Kammer, Mikrorisse, Bakterien mit Biofilm, Pilzhyphe mit Sporen, Asche mit EDX-Spektrum</td></tr>
+          <tr><td>5 Nanoporen</td><td>300 nm · ≈ Grippevirus</td><td>Modell</td><td>Poren nach IUPAC-Klassen (Makro, Meso, Mikro); Regler „Luftfeuchte“ füllt sie nach der Kelvin-Gleichung; Diffusions-Rennen der Gase</td></tr>
+          <tr><td>6 Mikroporen</td><td>10 nm · ≈ 4× DNA-Helix</td><td>Modell nach XRD/HRTEM</td><td>Gewellte Graphen-Schichten in Stapeln, Schichtabstand live, Mikroporen unter 2 nm mit CO₂, N₂, H₂O; im Holz Zellulose-Mikrofibrillen (Ø ≈ 3 nm) mit Hemizellulose und Lignin</td></tr>
+          <tr><td>7 Atome</td><td>2 nm · ≈ Glucose-Ring</td><td>Molekülmodell</td><td>Aromatischer Cluster mit π-Elektronenring, funktionelle Gruppen, gebundenes Kalium-Ion; unter 350 °C ein Lignin-Baustein</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="grid">
+      <figure>
+        <div class="shot" role="img" aria-label="Platzhalter Ebene 1"><span><b>Screenshot folgt</b>Ebene 1 · Stück</span></div>
+        <figcaption><span class="pos">1 · Stück</span><span>Buchenkohle mit Schwundrissen auf Waldboden.</span></figcaption>
+      </figure>
+      <figure>
+        <div class="shot" role="img" aria-label="Platzhalter Ebene 3"><span><b>Screenshot folgt</b>Ebene 3 · Zellen</span></div>
+        <figcaption><span class="pos">3 · Zellen</span><span>Aufgebrochene Zellröhren im Look eines REM-Bildes.</span></figcaption>
+      </figure>
+      <figure>
+        <div class="shot" role="img" aria-label="Platzhalter Ebene 6"><span><b>Screenshot folgt</b>Ebene 6 · Mikroporen</span></div>
+        <figcaption><span class="pos">6 · Mikroporen</span><span>Turbostratische Kohlenstoff-Schichten mit Gasmolekülen in den Mikroporen.</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div>
+      <h2>Einstellungen</h2>
+      <p>Das Zahnrad oben rechts öffnet die Einstellungen. Die Auswahl bleibt im Browser gespeichert.</p>
+    </div>
+    <div class="table-wrap">
+      <table class="stack">
+        <thead><tr><th>Einstellung</th><th>Wirkung</th></tr></thead>
+        <tbody>
+          <tr><td>Hell / Dunkel</td><td>Auto (wie das System) · Hell · Dunkel</td></tr>
+          <tr><td>Infotafel</td><td>Rechte Tafel ein oder aus</td></tr>
+          <tr><td>Messhilfen</td><td>Maßstäbe, Zonenbänder, Porenkonturen, Leitlinien und REM-Visier ein oder aus</td></tr>
+          <tr><td>Qualität</td><td>Auto · Leicht · Mittel · Fein; bei Auto misst die Seite die Bildrate und passt die Stufe an</td></tr>
+          <tr><td>Leistung</td><td>Renderskala, Bildraten-Deckel, Tiefenunschärfe, Bloom, Farbsaum und Korn einzeln</td></tr>
+          <tr><td>Bewegung</td><td>Voll · Ruhig · Aus (für Menschen mit Bewegungsempfindlichkeit), dazu Auftakt, Leerlauf-Fahrt, Flugdauer und Dauer des Zeitraffers</td></tr>
+          <tr><td>Licht</td><td>Hauptlicht mit Farbtemperatur, Gegenlicht, Umgebung, Belichtung</td></tr>
+          <tr><td>Details</td><td>Staub, Lichtschleier, Hotspots, REM-Aufladung, Kapillar-Aufstieg</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Starten</h2>
+    <div class="note">Die Web-App ist in Arbeit und nicht online. Diese Seite beschreibt den aktuellen Stand; die Bilder folgen.</div>
+    <pre><code>git clone https://github.com/lu4k87/__project_biochar.git
+cd __project_biochar
+npm run serve        # http://localhost:8470/</code></pre>
+    <p>Voraussetzung ist ein Browser mit WebGL 2 und Python 3 für den lokalen Server (ohne npm: <code>python3 -m http.server 8470 --directory web</code>). three.js liegt im Projekt (<code>web/vendor/</code>), ein Build ist nicht nötig.</p>
+    <div class="table-wrap">
+      <table class="stack">
+        <thead><tr><th>Adresse</th><th>Wirkung</th></tr></thead>
+        <tbody>
+          <tr><td><code>#ebene=1</code> … <code>7</code></td><td>Direkt in eine Ebene springen</td></tr>
+          <tr><td><code>?tour</code></td><td>Taucht selbständig durch alle Ebenen, bis du etwas eingibst; <code>&amp;dwell=15</code> setzt die Verweildauer in Sekunden (Standard 12)</td></tr>
+          <tr><td><code>?T=450</code></td><td>Temperatur setzen, 25–800 °C</td></tr>
+          <tr><td><code>?play</code></td><td>Zeitraffer nach dem Laden starten; <code>&amp;playsec=4</code> setzt seine Dauer in Sekunden</td></tr>
+          <tr><td><code>?q=1</code> · <code>2</code> · <code>3</code></td><td>Qualitätsstufe erzwingen (Leicht · Mittel · Fein)</td></tr>
+          <tr><td><code>?seed=123</code></td><td>Anordnung des Waldbodens in Ebene 1 festlegen</td></tr>
+          <tr><td><code>?fps</code></td><td>Bildrate und Qualitätsstufe in die Konsole schreiben</td></tr>
+          <tr><td><code>?freeze=0.5</code></td><td>Ersten Übergang anhalten (für Screenshots)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Belege und Bildnachweis</h2>
+    <ul class="plain">
+      <li>Kennzahlen, Modellannahmen und Grenzen der Darstellung: <code>docs/research.md</code> im Repository.</li>
+      <li>Die Quellen je Ebene stehen in der Infotafel; zentrale Werke: Porenklassen nach <a href="https://doi.org/10.1515/pac-2014-1117">Thommes et al. 2015 (IUPAC)</a>, Porenanalyse von Buchen-Biochar nach <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3907405/">Prommer et al. 2014</a>, Kohlenstoff-Beständigkeit nach <a href="https://www.ipcc-nggip.iges.or.jp/public/2019rf/pdf/4_Volume4/19R_V4_Ch02_Ap4_Biochar.pdf">IPCC 2019, Anhang Biochar</a>, Zersetzung von Hemizellulose, Zellulose und Lignin nach <a href="https://doi.org/10.1016/j.fuel.2006.12.013">Yang et al. 2007</a>, Mikrofibrillen nach <a href="https://doi.org/10.1073/pnas.1108942108">Fernandes et al. 2011</a>, Kohlenstoff-Strukturen nach <a href="https://arxiv.org/abs/2303.09661">Wood et al. 2023</a>.</li>
+      <li>Alle Bilder der Web-App entstehen im Browser aus Modellen (three.js); fremde Aufnahmen sind nicht eingebunden.</li>
+      <li>Echte REM-Aufnahmen zum Vergleich, nur verlinkt: <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3907405/">Prommer et al. 2014, Abb. 2</a> · <a href="https://www.mdpi.com/2311-5629/10/3/77">Hyphen in Biochar-Poren (MDPI C 10/3/77)</a> · <a href="https://journal.hep.com.cn/bch/EN/10.1007/s42773-021-00104-3">Poren aus Zellstrukturen (Biochar 2021)</a>.</li>
+      <li>three.js r170 (MIT) liegt in <code>web/vendor/</code>.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>Biochar · Reise in die Pflanzenkohle – ein Projekt von lu4k87.</p>
+  </footer>
+
+</main>
+</body>
+</html>

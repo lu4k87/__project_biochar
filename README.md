@@ -2,6 +2,8 @@
 
 Interaktive 3D-Webseite: Vom Stück Buchen-Pflanzenkohle zoomt die Kamera Ebene für Ebene in die Struktur – Gewebe, Zellen, Zellwand mit Tüpfeln, Nanoporen, turbostratischer Kohlenstoff, Atome. Jede Ebene hat anklickbare Punkte mit Erklärungen, Kennzahlen und Quellen.
 
+Doku-Seite mit Bedienung, Ebenen, Einstellungen und Belegen: [docs/readme_biochar.html](docs/readme_biochar.html).
+
 ## Starten
 
 ```bash
