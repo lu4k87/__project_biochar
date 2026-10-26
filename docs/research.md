@@ -1,4 +1,4 @@
-# Recherche: Struktur von Pflanzenkohle (Stand 2026-10-22)
+# Recherche: Struktur von Pflanzenkohle (Stand 2026-10-26)
 
 Grundlage für Texte und Modelle der Seite. Zahlen mit Quelle; alles andere ist als Modell oder Richtwert gekennzeichnet.
 
@@ -29,12 +29,21 @@ Grundlage für Texte und Modelle der Seite. Zahlen mit Quelle; alles andere ist 
 | Warum keine Graphitierung | gekrümmte, fullerenartige Fragmente mit Fünf-/Siebenringen stapeln nicht | Harris 2005, Crit. Rev. Solid State Mater. Sci. 30, 235–253 |
 | van-der-Waals-Radien | C 0,17 · O 0,152 · N 0,155 · H 0,12 nm | Bondi 1964 |
 | Redoxaktive Gruppen | Biochar nimmt Elektronen auf und gibt sie ab | Klüpfel et al. 2014 |
-| Kelvin-Gleichung (Wasser, 25 °C) | 2γVm/(RT) = 1,05 nm → 50 % rF ≈ 4 nm, 90 % ≈ 21 nm, 99 % ≈ 210 nm | Physikalische Chemie, eigene Rechnung |
+| Kelvin-Gleichung (Wasser, 25 °C) | 2γVm/(RT) = 1,05 nm; Füllen (Ø = 1,05 nm/ln(p₀/p) + 0,6 nm) → 50 % rF ≈ 2 nm, 90 % ≈ 11 nm, 99 % ≈ 105 nm; Entleeren (Cohan) ≈ 3,6 / 21 / 210 nm | Physikalische Chemie, eigene Rechnung |
 | Sorptions-Hysterese | Füllen mit zylindrischem, Entleeren mit halbkugeligem Meniskus → p_Entleeren = p_Füllen² | Cohan (1938), JACS 60, 433 |
 | Nanoporen in Holzkohle (Röntgen-Kleinwinkelstreuung) | Poren von einigen µm · Plättchen-Poren, eine Abmessung ≈ 2–3 nm, die anderen viel größer · kleine Poren < 1–2 nm; die kleinen nehmen mit der Temperatur zu (bei 400 °C fast nur µm-Poren) | Casteel et al. 1978, Wood and Fiber |
 | Zellwand beim Verkohlen (Fichte, Kiefer) | Faserstruktur bei 307–347 °C aufgelöst, danach entstehen und wachsen Nanoporen; Graphen-Schichten leicht entlang der Zellachse | Paris et al. 2005, Carbon 43, 53–66 |
 | Wandschichten (Eiche) | bis 300 °C erkennbar, ab 350 °C amorph ohne Schichtung | Kwon et al. 2009, Wood Sci. Technol. 43, 487–498 |
 | Mesoporen von Holzkohle (Spießtanne) | meist 2–10 nm; BET 34 m²/g (500 °C), 215 m²/g (700 °C) | Chen et al. 2018, Appl. Energy 218, 54–65 |
+| Mykorrhiza und Biochar | Pilzhyphen besiedeln die Poren, Biochar wirkt auf Mykorrhiza im Boden | Warnock et al. 2007, Plant Soil 300, 9–20 |
+| Rotglut | Körper glühen ab ≈ 525 °C sichtbar rot | Draper 1847, Phil. Mag. 30, 345–360 |
+| Elektrische Leitfähigkeit (Holz-Monolithen) | 600 °C ≈ 1 S/m → 1000 °C ≈ 1000 (Ahorn) bzw. 350 S/m (Kiefer); Elektronen-Hopping zwischen Graphit-Nanokristalliten | Gabhi et al. 2020, Biochar 2, 369–378 |
+| Leitfähigkeit über der Temperatur | steigt 400–800 °C exponentiell; Schüttbett 600 → 700 °C ≈ 4 Größenordnungen | Hagemann et al. 2025, PLoS ONE 20, e0330206 |
+| Spezifischer Widerstand Holzkohle | fällt 650 → 1050 °C um fünf Größenordnungen, im Röntgenbild unverändert | Mochidzuki et al. 2003, Ind. Eng. Chem. Res. 42, 5140–5151 |
+| Schwindung beim Verkohlen | anisotrop: tangential > radial > längs, Zellstruktur bleibt erhalten | Byrne & Nagle 1997, Carbon 35, 259–266 |
+| Hyphenwachstum | nur an der Spitze; Neurospora bis 10× schneller als Aspergillus | Riquelme et al. 2018, Microbiol. Mol. Biol. Rev. 82, e00068-17 |
+| REM: Aufladung, Rückstreuelektronen, EDX | schlecht leitende Proben laden sich auf (helle Streifen, Bildversatz); BSE-Ausbeute steigt mit der Ordnungszahl | Goldstein et al. 2018, SEM and X-Ray Microanalysis, 4. Aufl. |
+| Röntgenlinien Kα (EDX) | C 0,277 · O 0,525 · Mg 1,254 · K 3,314 · Ca 3,692 keV | Bearden 1967, Rev. Mod. Phys. 39, 78–124 |
 
 ## Richtwerte und Modellannahmen (nicht als Messwert lesen)
 - **Temperaturtabelle** in `web/js/science.js` (Ausbeute, C, H/C, O/C, BET, pH): typische Verläufe für Holz bei langsamer Pyrolyse, zusammengestellt aus Übersichtsliteratur (Lehmann & Joseph 2015; Xiao et al. 2016). Reale Kohlen streuen stark.
