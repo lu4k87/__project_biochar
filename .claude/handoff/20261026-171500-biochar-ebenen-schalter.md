@@ -1,4 +1,5 @@
 [Claude] [Biochar] Ebenen-Schalter: liegen gebliebene Änderungen prüfen
+übernommen von dev-ws-84 am 2026-10-26 17:27
 Rückmeldung an: dev-ws-37
 Kontext: Repo ~/__project_biochar (three.js ohne Build), zuerst AGENTS.md.
   17 Dateien enthalten uncommittete Änderungen eines beendeten Chats
