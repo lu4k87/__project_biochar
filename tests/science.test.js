@@ -2,7 +2,7 @@
 // Läuft ohne Testframework (auch mit älterem Node): node tests/science.test.js
 
 import assert from 'assert';
-import { properties, fperm, kelvinDiameterNm, fillDiameterNm, kelvinRh, desorbDiameterNm, wetDiameterNm, poreClass, filledShare, isotherm, nanoStructure, pyroState, glowColor, DRAPER, tissueScale, conductivity, fmtOhm, wettability, capillaryRise, capillaryTime, shrinkPercent } from '../web/js/science.js';
+import { properties, fperm, kelvinDiameterNm, fillDiameterNm, kelvinRh, desorbDiameterNm, wetDiameterNm, poreClass, filledShare, isotherm, nanoStructure, pyroState, glowColor, DRAPER, tissueScale, conductivity, fmtOhm, wettability, capillaryRise, capillaryTime, shrinkPercent, sessileDrop, dropPenetration, rhDay, PHONON, phononHz } from '../web/js/science.js';
 import { powerCells, polygonArea } from '../web/js/voronoi.js';
 import { mulberry32 } from '../web/js/util.js';
 import { LEVELS, SOURCES } from '../web/js/content.js';
@@ -193,6 +193,36 @@ test('Schwund-Richtungen: tangential > radial > längs, Mittel = Querschwindung;
   const k = tissueScale(800), w = tissueScale(25);
   assert.ok(k.x < k.y && k.y < k.z);
   assert.ok(w.x > w.y && w.y > w.z && w.x > 1);
+});
+
+test('Tropfen: Kugelkappe hält das Volumen, θ = 90° ist eine Halbkugel', () => {
+  for (const th of [40, 60, 90, 110]) {
+    const { R, h } = sessileDrop(10, th);
+    const v = (Math.PI * h * h * (3 * R - h)) / 3;          // Kappenvolumen aus Höhe und Radius
+    assert.ok(Math.abs(v - 10) < 1e-9, `θ ${th}: ${v}`);
+  }
+  const half = sessileDrop(10, 90);
+  assert.ok(Math.abs(half.a - half.R) < 1e-9 && Math.abs(half.h - half.R) < 1e-9);
+  assert.ok(sessileDrop(10, 40).a > sessileDrop(10, 110).a);   // benetzend = flach und breit
+});
+
+test('Eindringzeit: Klassen nach Doerr 1998, über 90° versickert nichts', () => {
+  assert.ok(dropPenetration(40).s < 5 && dropPenetration(40).cls === 'benetzbar');
+  assert.ok(dropPenetration(60).s > 5 && dropPenetration(60).s < 60);
+  assert.equal(dropPenetration(110).s, Infinity);
+  assert.equal(dropPenetration(110).cls, 'extrem wasserabweisend');
+});
+
+test('Tagesgang: 95 % vor Sonnenaufgang, 45 % am Nachmittag, stetig über Mitternacht', () => {
+  assert.ok(Math.abs(rhDay(5) - 0.95) < 1e-9 && Math.abs(rhDay(15) - 0.45) < 1e-9);
+  assert.ok(Math.abs(rhDay(0) - rhDay(24)) < 1e-9 && Math.abs(rhDay(23.999) - rhDay(0)) < 1e-3);
+  for (let h = 0; h < 24; h += 0.25) assert.ok(rhDay(h) >= 0.45 - 1e-9 && rhDay(h) <= 0.95 + 1e-9);
+  assert.ok(Math.abs(rhDay(10) - 0.7) < 1e-9 && Math.abs(rhDay(22) - 0.7) < 1e-9);   // fällt in 10 h, steigt in 14 h
+});
+
+test('Raman: G-Mode schwingt schneller als D-Mode, ≈ 47 THz', () => {
+  assert.ok(Math.abs(phononHz(PHONON.G) / 1e12 - 47.4) < 0.2);
+  assert.ok(PHONON.G / PHONON.D > 1.15 && PHONON.G / PHONON.D < 1.2);
 });
 
 process.exitCode = failed ? 1 : 0;
