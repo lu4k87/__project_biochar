@@ -1,4 +1,5 @@
 [Claude] [Biochar] Zahnrad: Klapp-Liste mit Sprungleiste wie Kosmos
+übernommen von dev-ws-ee am 2026-10-26 18:18
 Rückmeldung an: dev-ws-95
 
 Kontext:
