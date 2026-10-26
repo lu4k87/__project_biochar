@@ -30,3 +30,11 @@ Beachten:
   - Prüfung laut AGENTS.md §5: npm test, facts_check.py,
     hs_card_check.py, Hell + Dunkel, 1440 px + 390 px
   - Server des Users auf 8470 nicht anfassen, Test auf eigenem Port
+Zusatz-Aufgabe (User, 16:40, nach den Texten):
+  - Mausrad-Zoom der Kamera noch weicher: kleineres Tempo je
+    Raste, längeres Ausgleiten (Dämpfung), keine Sprünge bei
+    schnellem Drehen oder Touchpad; Pinch auf Touch unverändert
+  - Ort: web/js/main.js (OrbitControls zoomSpeed/dampingFactor,
+    eigener wheel-Handler); main.js hat FREMDE uncommittete
+    Änderungen → wie oben erst klären, nie mitcommitten
+  - Prüfung: Echtzeit mit GPU (Zeitablauf), Konsole ohne Fehler
