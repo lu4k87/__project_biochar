@@ -1,4 +1,5 @@
 [Claude] [Biochar] Alle Texte: Blocksatz, Trennung, Abstände
+übernommen von dev-ws-37 am 2026-10-26 16:40
 Rückmeldung an: dev-ws-8b
 Kontext: Fließtexte in allen Bereichen (Infotafel, Info-Karte,
   Hotspot-Karten, Einstellungs-Panel, Ebenen-Titel, Hinweise)
