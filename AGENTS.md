@@ -26,6 +26,7 @@ Ergänzt die gemeinsamen Regeln aller Projekte (`~/.claude/CLAUDE.md` → `~/ai_
 | `web/js/voronoi.js`, `wood.js`, `walls.js`, `sem.js` | Power-Diagramm, Buchen-Gewebe, Wände und REM-Instanzen (Flocken, Thyllen), REM-Shader mit gemeinsamem, langsam schwenkendem Detektor (`semDetector`), additive Mischung ohne Alpha (`ADDITIVE`) |
 | `web/js/levels/*.js` | die 7 Ebenen: `piece` → `tissue` → `cells` → `wall` → `meso` → `micro` → `atoms` |
 | `web/js/levels/ground.js`, `ground_tex.js` | Waldboden der Ebene 1 (Humus mit Buchenlaub + Terra preta, Vorschau 2026-10-24): Fläche Ø ≈ 1 m mit Relief (`heightAt`, Krümel des Stücks liegen darauf) und unregelmäßigem Rand, Anordnung und Texturen aus einem Seed; Texturen rechnet ein Modul-Worker (≈ 2–2,5 s neben dem Aufbau, ohne three.js), danach blenden sie in 1,2 s ein; echte Schatten nur bei `quality.shadows`, sonst Kontaktschatten |
+| `web/css/fonts.css`, `web/fonts/` | IBM Plex Sans/Mono lokal statt Google Fonts (DSGVO, offline), SIL OFL 1.1 → `web/fonts/OFL.txt` |
 | `web/vendor/three/` | three.js r170 + OrbitControls, RoomEnvironment (Fremdcode, nicht ändern) |
 | `tests/science.test.js`, `tests/quality.test.js`, `tests/nanolab.test.js` | Prüfung der Kennwerte (auch Tropfen-Kappe, Eindringzeit, Tagesgang, Raman-Frequenzen) und der Voronoi-Zerlegung · Bildraten-Probe, Auto-Wache und Bildraten-Deckel der Qualitätsstufen · Knudsen-Rennen, Bragg/Scherrer, Raman I_D/I_G |
 | `docs/research.md` | Recherche: Quellen, Kennzahlen, weitere Vorlagen |
