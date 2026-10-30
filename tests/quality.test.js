@@ -60,6 +60,25 @@ async function test(name, fn) {
     run_(q, 120, 15);
     assert.equal(q.get().id, 'medium');
   });
+  await test('Wache (Auto): 60-Hz-Takt nach Absenkung → wieder herauf', async () => {
+    const q = await fresh();
+    run_(q, 15, 8);
+    assert.equal(q.get().id, 'light');
+    run_(q, 60, 46);
+    assert.equal(q.get().id, 'medium');
+  });
+  await test('Wache (Auto): neue Stufe schafft den Takt nicht → zurück, längere Sperre', async () => {
+    const q = await fresh();
+    run_(q, 15, 8);
+    run_(q, 60, 28);   // herauf nach ≈ 27 s, Probezeit läuft noch
+    assert.equal(q.get().id, 'medium');
+    run_(q, 35, 7);
+    assert.equal(q.get().id, 'light', 'Probezeit');
+    run_(q, 60, 50);
+    assert.equal(q.get().id, 'light', 'Sperre jetzt 60 s');
+    run_(q, 60, 15);
+    assert.equal(q.get().id, 'medium');
+  });
   await test('Bildraten-Deckel 30: gedeckelte 30 fps senken die Stufe nicht', async () => {
     const q = await fresh();
     run_(q, 30, 40, 1 / 30);
