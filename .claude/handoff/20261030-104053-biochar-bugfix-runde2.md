@@ -1,4 +1,5 @@
 [Claude] [biochar] Bugfix Runde 2: 26 Befunde beheben
+übernommen von dev-ws-ce am 2026-10-30 10:42
 Rückmeldung an: dev-ws-18
 Kontext: Zweite Fehlersuche (Chat dev-ws-18, 2026-10-30) fand
   26 Fehler in __project_biochar, je Befund von einem zweiten
