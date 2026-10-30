@@ -8,7 +8,7 @@ import base64, json, os, socket, subprocess, sys, tempfile, time, urllib.request
 import websocket   # websocket-client
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PORT = int(os.environ.get('BIOCHAR_TEST_PORT', 8471)); CDP = 9335
+PORT = int(os.environ.get('BIOCHAR_TEST_PORT', 8473)); CDP = int(os.environ.get('BIOCHAR_CDP_PORT', 9335))   # je Skript eigene Ports: Parallelläufe stören sich nicht
 WIDTHS = [int(w) for w in (sys.argv[1] if len(sys.argv) > 1 else '1440,1024,390').split(',')]
 LEVELS = [int(n) for n in (sys.argv[2] if len(sys.argv) > 2 else '1,2,3,4,5,6,7').split(',')]
 SHOTS = sys.argv[3] if len(sys.argv) > 3 else None
@@ -67,10 +67,12 @@ try:
             for _ in range(150):
                 if js("document.body.classList.contains('is-ready') && !document.body.classList.contains('is-loading')"): break
                 time.sleep(0.2)
+            else:
+                bad += 1; print(f'{w} px · Ebene {n}: ❌ Seite nicht bereit (is-ready fehlt)'); continue
             time.sleep(1.0)
             js("document.querySelector('.facts')?.scrollIntoView({block: 'center'})"); time.sleep(0.3)
             m = js(MEASURE)
-            if not m: print(f'{w} px · Ebene {n}: keine Kennzahlen'); continue
+            if not m: bad += 1; print(f'{w} px · Ebene {n}: ❌ keine Kennzahlen (jede Ebene hat facts)'); continue
             fit = ''
             if w >= 1440 and m['fit'][0] > m['fit'][1]:
                 if n in SCROLL_OK: fit = f" ℹ️ scrollt (erlaubt): {m['fit'][0]} / {m['fit'][1]} px"
@@ -81,7 +83,8 @@ try:
                 x, y, cw, ch = m['clip']
                 img = call('Page.captureScreenshot', {'format': 'png', 'clip': {'x': x - 8, 'y': y - 8, 'width': cw + 16, 'height': ch + 16, 'scale': 1}})
                 with open(os.path.join(SHOTS, f'facts-{SCHEME}-{w}-{n}.png'), 'wb') as fh: fh.write(base64.b64decode(img['data']))
-    errs = [e for e in events if e.get('method') == 'Runtime.exceptionThrown' or (e.get('method') == 'Log.entryAdded' and e['params']['entry']['level'] == 'error')]
+    errs = [e for e in events if e.get('method') == 'Runtime.exceptionThrown' or (e.get('method') == 'Runtime.consoleAPICalled' and e['params']['type'] == 'error')
+            or (e.get('method') == 'Log.entryAdded' and e['params']['entry']['level'] == 'error')]
     for e in errs: print('Konsole:', json.dumps(e['params'])[:200])
     sys.exit(1 if bad or errs else 0)
 finally:

@@ -9,7 +9,7 @@ import websocket   # websocket-client
 from PIL import Image, ImageDraw
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PORT = int(os.environ.get('BIOCHAR_TEST_PORT', 8471)); CDP = 9334
+PORT = int(os.environ.get('BIOCHAR_TEST_PORT', 8474)); CDP = int(os.environ.get('BIOCHAR_CDP_PORT', 9336))   # je Skript eigene Ports: Parallelläufe stören sich nicht
 OUT = sys.argv[1] if len(sys.argv) > 1 else tempfile.mkdtemp(prefix='biochar-levels-')
 os.makedirs(OUT, exist_ok=True)
 LEVELS = [int(x) for x in os.environ.get('LEVELS', '3,4,5,6,7').split(',')]

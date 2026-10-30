@@ -7,7 +7,7 @@ import base64, json, os, socket, subprocess, sys, tempfile, time, urllib.request
 import websocket   # websocket-client
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PORT = int(os.environ.get('BIOCHAR_TEST_PORT', 8471)); CDP = 9333
+PORT = int(os.environ.get('BIOCHAR_TEST_PORT', 8471)); CDP = int(os.environ.get('BIOCHAR_CDP_PORT', 9333))   # je Skript eigene Ports: Parallelläufe stören sich nicht
 OUT = sys.argv[1] if len(sys.argv) > 1 else tempfile.mkdtemp(prefix='biochar-pyro-')
 URL = f'http://127.0.0.1:{PORT}/?play&playsec=10&q=2'
 

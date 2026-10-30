@@ -7,7 +7,7 @@ import base64, json, os, shutil, socket, subprocess, sys, tempfile, time, urllib
 import websocket   # websocket-client
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PORT = int(os.environ.get('BIOCHAR_TEST_PORT', 8471)); CDP = 9334
+PORT = int(os.environ.get('BIOCHAR_TEST_PORT', 8472)); CDP = int(os.environ.get('BIOCHAR_CDP_PORT', 9334))   # je Skript eigene Ports: Parallelläufe stören sich nicht
 WIDTHS = [int(w) for w in (sys.argv[1] if len(sys.argv) > 1 else '1440,390').split(',')]
 LEVELS = [int(n) for n in (sys.argv[2] if len(sys.argv) > 2 else '1,2,3,4,5,6,7').split(',')]
 SHOTS = sys.argv[3] if len(sys.argv) > 3 else None
@@ -49,7 +49,8 @@ try:
         actions: r(q('.top-actions')), ladder: r(q('.ladder')), timeline: r(q('#pyro-tl')) };
       [...document.querySelectorAll('.hsb:not(.is-off):not(.is-active)')].forEach((b, i) => ui['hsb' + i] = r(b));
       const card = q('.hs-card');
-      return { card: card.classList.contains('is-away') ? null : r(card), ui, W: innerWidth, H: innerHeight }; })()"""
+      const away = card.classList.contains('is-away');
+      return { card: away ? null : r(card), open: card.classList.contains('is-open'), away, ui, W: innerWidth, H: innerHeight }; })()"""
     # Blocksatz ohne Gassen: größte Wortlücke je Absatz mit text-align: justify (ohne letzte und weggekürzte Zeilen), in em;
     # getrennt wird nur an normalen Leerzeichen, Zahl + Einheit mit geschütztem Leerzeichen zählt als ein Wort
     GAPS = """((root) => { const out = [];
@@ -108,9 +109,10 @@ try:
                 c = st['card']
                 hits = [k for k, v in st['ui'].items() if ov(c, v)]
                 outside = bool(c) and (c[0] < 0 or c[1] < 0 or c[2] > st['W'] or c[3] > st['H'])
-                flag = '-- ' if not c else 'BAD' if hits or outside else 'OK '
+                shut = not st['open'] or (not c and not st['away'])   # Karte nicht aufgegangen bzw. offen, aber unsichtbar
+                flag = 'BAD' if shut or hits or outside else '-- ' if not c else 'OK '   # '--' nur: Abzeichen gerade außer Sicht
                 bad += flag == 'BAD'
-                print(f"{w} L{n} {hid:14s} {flag} card={c} hits={hits}{' outside' if outside else ''}", flush=True)
+                print(f"{w} L{n} {hid:14s} {flag} card={c} hits={hits}{' outside' if outside else ''}{' nicht offen' if not st['open'] else ' unsichtbar' if shut else ''}", flush=True)
                 if c: gap_report(f'{w} L{n} {hid}', "document.querySelector('.hs-card')")
                 if SHOTS and c:
                     open(f'{SHOTS}/{SCHEME}-{w}-L{n}-{hid}.png', 'wb').write(base64.b64decode(call('Page.captureScreenshot', {'format': 'png'})['data']))
@@ -121,6 +123,7 @@ try:
     for e in errs[:5]: print('Konsole:', json.dumps(e['params'], ensure_ascii=False)[:200])
     print(f'Überlappungen {bad} · Lücken > {GAP_WARN} em {gaps} · Gassen > {GAP_MAX} em {wide} · Konsole {len(errs)}' + (f' · Bilder: {SHOTS}' if SHOTS else ''))
     ws.close()
+    sys.exit(1 if bad or wide or errs else 0)
 finally:
     chrome.terminate(); chrome.wait()
     if server: server.terminate(); server.wait()
