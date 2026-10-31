@@ -47,13 +47,13 @@ try:
       [...box.querySelectorAll('.fact')].forEach((f, i) => {
         const c = r(f), v = f.querySelector('.fact-value'), bar = f.querySelector('.fact-bar'), name = v.textContent;
         if (c.left < panel.left - 1 || c.right > panel.right + 1) problems.push(`${name}: Karte ragt aus dem Panel`);
-        if ([...v.children].some((s) => s.getClientRects().length > 1)) problems.push(`${name}: Wert bricht zwischen Zahl und Einheit um`);
+        if ([...f.querySelectorAll('.fact-value > span')].some((s) => s.getClientRects().length > 1)) problems.push(`${name}: Wert bricht zwischen Zahl und Einheit um`);
         const pad = parseFloat(getComputedStyle(f).paddingRight);
         for (const el of f.querySelectorAll('.fact-value, .fact-label')) {
           const rg = document.createRange(); rg.selectNodeContents(el);
           for (const q of rg.getClientRects()) if (q.right > c.right - pad + 1) { problems.push(`${name}: „${el.textContent.slice(0, 30)}“ ragt über den Kartenrand`); break; }
         }
-        (rows[Math.round(c.top)] ??= []).push(Math.round(r(bar).bottom));
+        if (bar) (rows[Math.round(c.top)] ??= []).push(Math.round(r(bar).bottom));   // geteilte Sammelwerte haben keinen Balken
       });
       Object.values(rows).forEach((b) => { if (Math.max(...b) - Math.min(...b) > 1) problems.push(`Balken einer Zeile versetzt: ${b.join(' / ')} px`); });
       const pb = document.querySelector('#panel-body'), b = r(box);
