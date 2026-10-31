@@ -1,4 +1,5 @@
 [Claude] [biochar] Zahnrad: Reiter Qualität + Stufe Sparsam
+übernommen von dev-ws-0c am 2026-10-31 11:46
 Rückmeldung an: dev-ws-a7
 Kontext: User 31.10.2026: „in den settings auch einen Reiter für
   Qualität, dass auch schwache Computer ohne gute Grafikkarte die
