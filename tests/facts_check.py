@@ -13,7 +13,7 @@ WIDTHS = [int(w) for w in (sys.argv[1] if len(sys.argv) > 1 else '1440,1024,390'
 LEVELS = [int(n) for n in (sys.argv[2] if len(sys.argv) > 2 else '1,2,3,4,5,6,7').split(',')]
 SHOTS = sys.argv[3] if len(sys.argv) > 3 else None
 SCHEME = os.environ.get('SCHEME', 'dark')
-SCROLL_OK = {5, 6, 7}   # Ebenen, deren Tafel bei 1440 × 900 scrollen darf
+SCROLL_OK = {1, 2, 3, 4, 5, 6, 7}   # Tafel darf bei 1440 × 900 auf allen Ebenen scrollen (User 2026-10-31, nach Labor:A + C)
 PROFILE = tempfile.mkdtemp(prefix='biochar-facts-')
 if SHOTS: os.makedirs(SHOTS, exist_ok=True)
 
