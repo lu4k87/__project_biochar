@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Aufnahmen der Biochar-Seite per CDP (Muster tests/hs_card_check.py), z. B. fuer Vorher/Nachher-Boegen mit ?dev (window.__bc).
 Aufruf: python3 tests/shots_cdp.py <shots.json> <bilder-ordner>; shots.json = Liste von
-{name, level, query ("&dev&seed=7"), scheme (light|dark), motion (reduce), width, height, css, js, clip (Selektor, Liste oder [x, y, w, h]), pad, scale, wait}.
+{name, level, query ("&dev&seed=7", eigenes "&q=0" ersetzt das feste q=3), scheme (light|dark), motion (reduce), width, height, css, js, clip (Selektor, Liste oder [x, y, w, h]), pad, scale, wait}.
 Wartet je Shot auf body.is-ready, spielt css/js ein, schreibt <name>.png + <name>.shot.json (Format wie preview/capture.py)."""
 import json, os, subprocess, sys, time, urllib.request, base64, socket, websocket
 import tempfile, shutil
@@ -39,7 +39,7 @@ try:
         call('Emulation.setDeviceMetricsOverride', {'width': w, 'height': h, 'deviceScaleFactor': 1, 'mobile': w < 600})
         call('Emulation.setEmulatedMedia', {'features': [{'name': 'prefers-color-scheme', 'value': s.get('scheme', 'light')}, {'name': 'prefers-reduced-motion', 'value': s.get('motion', 'no-preference')}]})
         events.clear(); t0 = time.time()
-        call('Page.navigate', {'url': f"http://127.0.0.1:{PORT}/?q=3&shot={s['name']}{s.get('query', '')}#ebene={s.get('level', 1)}"})
+        call('Page.navigate', {'url': f"http://127.0.0.1:{PORT}/?{'' if '&q=' in s.get('query', '') else 'q=3&'}shot={s['name']}{s.get('query', '')}#ebene={s.get('level', 1)}"})
         ok = False
         for _ in range(300):
             if js("document.body.classList.contains('is-ready') && !document.body.classList.contains('is-loading') && !document.getElementById('hotspots').classList.contains('is-hidden')"): ok = True; break
