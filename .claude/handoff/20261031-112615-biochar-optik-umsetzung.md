@@ -1,4 +1,5 @@
 [Claude] [biochar] Optik: Kohle:A, REM:A, Atome:A, Linse:A umsetzen
+übernommen von dev-ws-a7 am 2026-10-31 11:26
 Rückmeldung an: dev-ws-f9
 Kontext: Vorschau 31.10.2026 „Biochar: mehr Detail in Material, Licht
   und Linse“ (Chat dev-ws-f9); Entscheidung des Users aus der Seite:
