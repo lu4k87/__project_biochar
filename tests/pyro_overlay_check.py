@@ -37,7 +37,7 @@ try:
     STATE = """(() => { const tl = document.getElementById('pyro-tl'); if (!tl || !document.getElementById('tl-T')) return null;
       const r = (el) => { if (!el) return null; const b = el.getBoundingClientRect(), cs = getComputedStyle(el);
         return b.width && b.height && cs.display !== 'none' && cs.visibility !== 'hidden' ? [b.left, b.top, b.right, b.bottom] : null; };
-      const q = (s) => document.querySelector(s), card = q('.hs-card'), on = q('.tl-chapters .is-on');
+      const q = (s) => document.querySelector(s), card = q('.hs-card'), on = q('.tl-chapters .is-on .tl-ch-name');
       return { ready: document.body.classList.contains('is-ready'), playing: q('#btn-play').getAttribute('aria-pressed'),
         T: q('#tl-T').textContent, goal: q('#tl-goal-T').textContent, phase: q('#tl-phase').textContent, chapter: on ? on.textContent : '',
         tl: r(tl), box: [r(q('.stage-hud')), r(q('.bottombar'))].reduce((u, b) => [Math.min(u[0], b[0]), u[1], Math.max(u[2], b[2]), b[3]]), hsb: [...document.querySelectorAll('.hsb:not(.is-off)')].map(r).filter(Boolean), bars: [r(q('.ladder')), r(q('.topbar'))].filter(Boolean), shift: tl.style.translate, moved: tl.classList.contains('is-moved'), saved: localStorage.getItem('biochar.timeline-dock'),

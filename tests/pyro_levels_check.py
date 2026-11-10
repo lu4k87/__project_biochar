@@ -63,10 +63,11 @@ try:
                 load(f'http://127.0.0.1:{PORT}/?T={T}&q=2#ebene={lv}', 1440, 900, scheme)
                 shot(f'e{lv}-{scheme}-{T}')
                 print(f'Ebene {lv} {scheme} {T} °C: {len(errors) - n0} Konsolenfehler', flush=True)
-    # Info-Karte: Klick auf das erste Info-Abzeichen → Karte offen, links vom Abzeichen, im Fenster
+    # Info-Karte: Klick auf das erste Info-Abzeichen → Karte offen, neben, über oder unter dem Abzeichen (hud.js placeCard
+    # wählt die Seite mit Platz – „nur links“ war seit der Kartenlage mit Lupe überholt und schlug immer fehl), im Fenster
     CARD = """(() => { const b = document.querySelector('.hsb--info:not(.is-off)'); if (!b) return { ok: false, why: 'kein Abzeichen' };
       const c = document.querySelector('.hs-card'); const rb = b.getBoundingClientRect(), rc = c.getBoundingClientRect();
-      const beside = rc.right <= rb.left, below = rc.top >= rb.bottom;   // links vom Abzeichen, im schmalen Fenster darunter
+      const beside = rc.right <= rb.left || rc.left >= rb.right, below = rc.top >= rb.bottom || rc.bottom <= rb.top;   // deckt das Abzeichen nicht
       return { ok: c.classList.contains('is-open') && (beside || below) && rc.left >= 0 && rc.top >= 0 && rc.bottom <= innerHeight && +getComputedStyle(c).opacity > 0.9, beside, below,
         open: c.classList.contains('is-open'), card: [rc.left, rc.top, rc.right, rc.bottom], badge: [rb.left, rb.top, rb.right, rb.bottom], op: getComputedStyle(c).opacity }; })()"""
     for name, w, h, scheme in [('card-1440-dark', 1440, 900, 'dark'), ('card-1440-light', 1440, 900, 'light'), ('card-390-dark', 390, 844, 'dark')]:
